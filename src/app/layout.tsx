@@ -13,7 +13,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Scoreboard",
+  title: {
+    default: "Scoreboard",
+    template: "%s · Scoreboard",
+  },
   description: "Suivi de scores pour parties de cartes",
 };
 
