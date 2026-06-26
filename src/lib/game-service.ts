@@ -64,6 +64,31 @@ function buildGameState(game: GameWithRelations, isAdmin: boolean): GameState {
   }
 }
 
+// ─── Active games list ───────────────────────────────────────────────────────
+
+export interface GameSummary {
+  viewToken: string
+  playerNames: string[]
+  roundNumber: number | null
+}
+
+export async function listActiveGames(): Promise<GameSummary[]> {
+  const games = await prisma.game.findMany({
+    where: { status: 'ACTIVE' },
+    orderBy: { createdAt: 'desc' },
+    include: {
+      players: { orderBy: { order: 'asc' }, select: { name: true } },
+      rounds: { orderBy: { number: 'desc' }, take: 1, select: { number: true } },
+    },
+  })
+
+  return games.map((g) => ({
+    viewToken: g.viewToken,
+    playerNames: g.players.map((p) => p.name),
+    roundNumber: g.rounds[0]?.number ?? null,
+  }))
+}
+
 // ─── Auth helper ─────────────────────────────────────────────────────────────
 
 async function findActiveGameByAdminToken(adminToken: string): Promise<GameWithRelations> {

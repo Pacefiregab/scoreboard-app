@@ -9,15 +9,17 @@ import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { AddPlayerDialog } from './AddPlayerDialog'
 import { ReorderPlayersDialog } from './ReorderPlayersDialog'
+import { QRCodeSVG } from 'qrcode.react'
 import {
   Menu,
   UserPlus,
-  ArrowDownUp,
   ChevronsDown,
   Flag,
   GripVertical,
   Hash,
   X,
+  Share2,
+  Check,
 } from 'lucide-react'
 
 interface Props {
@@ -33,6 +35,8 @@ export function GameMenu({ game, onAction }: Props) {
   const [cardCountValue, setCardCountValue] = useState<string>('')
   const [loading, setLoading] = useState<string | null>(null)
   const [cancelConfirm, setCancelConfirm] = useState(false)
+  const [shareOpen, setShareOpen] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   const lastRound = game.rounds.at(-1)
   const inBetting = lastRound?.status === 'BETTING'
@@ -94,6 +98,21 @@ export function GameMenu({ game, onAction }: Props) {
     setTimeout(action, 150)
   }
 
+  const viewUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/view/${game.viewToken}`
+    : ''
+
+  async function handleShare() {
+    if (!shareOpen) { setShareOpen(true); return }
+    if (navigator.share) {
+      await navigator.share({ title: 'Scoreboard', url: viewUrl })
+    } else {
+      await navigator.clipboard.writeText(viewUrl)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
   return (
     <>
       <Sheet open={open} onOpenChange={setOpen}>
@@ -107,6 +126,35 @@ export function GameMenu({ game, onAction }: Props) {
           </SheetHeader>
 
           <div className="flex flex-col gap-1 pb-6">
+            {/* Share */}
+            <button
+              onClick={handleShare}
+              className="flex items-center gap-3 px-1 py-3 text-sm hover:bg-muted rounded-lg transition-colors"
+            >
+              {copied ? <Check size={16} className="text-green-500" /> : <Share2 size={16} className="text-muted-foreground" />}
+              {copied ? 'Lien copié !' : 'Partager la partie'}
+            </button>
+            {shareOpen && (
+              <div className="flex flex-col items-center gap-3 px-1 py-2">
+                <QRCodeSVG value={viewUrl} size={180} />
+                <p className="text-xs text-muted-foreground break-all text-center">{viewUrl}</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={async () => {
+                    await navigator.clipboard.writeText(viewUrl)
+                    setCopied(true)
+                    setTimeout(() => setCopied(false), 2000)
+                  }}
+                >
+                  {copied ? 'Copié !' : 'Copier le lien'}
+                </Button>
+              </div>
+            )}
+
+            <Separator className="my-1" />
+
             {/* Change card count — only during betting */}
             {inBetting && (
               <div className="flex items-center gap-2 px-1 py-2">

@@ -1,5 +1,14 @@
 import { ok, handleError } from '@/lib/api-helpers'
-import { createGame } from '@/lib/game-service'
+import { createGame, listActiveGames } from '@/lib/game-service'
+
+export async function GET() {
+  try {
+    const games = await listActiveGames()
+    return ok(games)
+  } catch (e) {
+    return handleError(e)
+  }
+}
 
 export async function POST(req: Request) {
   try {
