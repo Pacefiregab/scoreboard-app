@@ -31,6 +31,4 @@ jobs:
             ghcr.io/pacefiregab/scoreboard-app:latest
             ghcr.io/pacefiregab/scoreboard-app:${{ github.sha }}
 
-      - name: Trigger Portainer redeploy
-        run: curl -s -X POST "${{ secrets.PORTAINER_WEBHOOK_URL }}"
 

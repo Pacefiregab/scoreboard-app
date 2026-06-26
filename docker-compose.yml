@@ -25,5 +25,12 @@ services:
       db:
         condition: service_healthy
 
+  watchtower:
+    image: containrrr/watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --interval 60 --cleanup --include-stopped
+
 volumes:
   postgres_data:
