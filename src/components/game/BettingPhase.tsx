@@ -19,7 +19,7 @@ export function BettingPhase({ game, round, onSubmit }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const sortedPlayers = [...game.players].sort((a, b) => a.order - b.order)
+  const sortedPlayers = [...game.players].filter((p) => p.active).sort((a, b) => a.order - b.order)
   const n = sortedPlayers.length
 
   // The constrained player rotates: round 1 → last, round 2 → first, round 3 → second…

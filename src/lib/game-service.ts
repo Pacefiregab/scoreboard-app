@@ -29,6 +29,7 @@ function buildGameState(game: GameWithRelations, isAdmin: boolean): GameState {
       id: p.id,
       name: p.name,
       order: p.order,
+      active: p.active,
       initialScore: p.initialScore,
       totalScore: lastScore ? lastScore.totalPoints : p.initialScore,
     }
@@ -299,7 +300,7 @@ export async function updateRoundCardCount(
 export async function updatePlayer(
   adminToken: string,
   playerId: string,
-  data: { name?: string; order?: number },
+  data: { name?: string; order?: number; active?: boolean },
 ): Promise<void> {
   const game = await findActiveGameByAdminToken(adminToken)
   const player = game.players.find((p) => p.id === playerId)
@@ -324,5 +325,9 @@ export async function updatePlayer(
     ])
   } else if (data.name) {
     await prisma.player.update({ where: { id: playerId }, data: { name: data.name.trim() } })
+  }
+
+  if (data.active !== undefined) {
+    await prisma.player.update({ where: { id: playerId }, data: { active: data.active } })
   }
 }

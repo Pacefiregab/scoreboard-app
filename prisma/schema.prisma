@@ -24,6 +24,7 @@ model Player {
   game        Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
   name        String
   order       Int
+  active      Boolean  @default(true)
   initialScore Int     @default(0)
   createdAt   DateTime @default(now())
   bets        Bet[]

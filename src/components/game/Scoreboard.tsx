@@ -37,7 +37,7 @@ export function Scoreboard({ game }: Props) {
             return (
               <div
                 key={player.id}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2 ${isLeader ? 'bg-primary/10' : 'hover:bg-muted/50'}`}
+                className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-opacity ${isLeader && player.active ? 'bg-primary/10' : 'hover:bg-muted/50'} ${!player.active ? 'opacity-40' : ''}`}
               >
                 <span className="w-5 text-sm text-muted-foreground font-mono">{rank + 1}.</span>
                 <span className="flex-1 font-medium text-sm">{player.name}</span>

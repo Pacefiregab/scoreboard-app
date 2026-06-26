@@ -6,6 +6,7 @@ export interface PlayerState {
   id: string
   name: string
   order: number
+  active: boolean
   initialScore: number
   totalScore: number
 }

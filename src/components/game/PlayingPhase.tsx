@@ -19,7 +19,7 @@ export function PlayingPhase({ game, round, onSubmit }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const orderedPlayers = [...game.players].sort((a, b) => a.order - b.order)
+  const orderedPlayers = [...game.players].filter((p) => p.active).sort((a, b) => a.order - b.order)
 
   const parsed = orderedPlayers.map((p) => ({
     playerId: p.id,
