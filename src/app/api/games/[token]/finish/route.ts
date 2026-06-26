@@ -1,0 +1,15 @@
+import { ok, handleError } from '@/lib/api-helpers'
+import { finishGame } from '@/lib/game-service'
+
+export async function POST(
+  _req: Request,
+  { params }: { params: Promise<{ token: string }> },
+) {
+  try {
+    const { token } = await params
+    await finishGame(token)
+    return ok({ ok: true })
+  } catch (e) {
+    return handleError(e)
+  }
+}

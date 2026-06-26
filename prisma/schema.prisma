@@ -1,0 +1,83 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Game {
+  id          String     @id @default(cuid())
+  adminToken  String     @unique @default(cuid())
+  viewToken   String     @unique @default(cuid())
+  status      GameStatus @default(ACTIVE)
+  phase       GamePhase  @default(ASCENDING)
+  createdAt   DateTime   @default(now())
+  finishedAt  DateTime?
+  players     Player[]
+  rounds      Round[]
+}
+
+model Player {
+  id          String   @id @default(cuid())
+  gameId      String
+  game        Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  name        String
+  order       Int
+  initialScore Int     @default(0)
+  createdAt   DateTime @default(now())
+  bets        Bet[]
+  scores      RoundScore[]
+}
+
+model Round {
+  id          String      @id @default(cuid())
+  gameId      String
+  game        Game        @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  number      Int
+  cardCount   Int
+  status      RoundStatus @default(BETTING)
+  createdAt   DateTime    @default(now())
+  bets        Bet[]
+  scores      RoundScore[]
+}
+
+model Bet {
+  id         String  @id @default(cuid())
+  roundId    String
+  round      Round   @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  playerId   String
+  player     Player  @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  announced  Int
+  actual     Int?
+
+  @@unique([roundId, playerId])
+}
+
+model RoundScore {
+  id          String  @id @default(cuid())
+  roundId     String
+  round       Round   @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  playerId    String
+  player      Player  @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  points      Int
+  totalPoints Int
+
+  @@unique([roundId, playerId])
+}
+
+enum GameStatus {
+  ACTIVE
+  FINISHED
+}
+
+enum GamePhase {
+  ASCENDING
+  DESCENDING
+}
+
+enum RoundStatus {
+  BETTING
+  PLAYING
+  DONE
+}
