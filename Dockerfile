@@ -11,6 +11,7 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY prisma ./prisma
+COPY prisma.config.ts ./prisma.config.ts
 CMD ["npx", "prisma", "migrate", "deploy"]
 
 FROM base AS builder
