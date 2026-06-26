@@ -14,6 +14,15 @@ services:
       timeout: 5s
       retries: 5
 
+  migrate:
+    image: ghcr.io/pacefiregab/scoreboard-app:migrator
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-scoreboard}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-scoreboard}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
   app:
     image: ghcr.io/pacefiregab/scoreboard-app:latest
     restart: unless-stopped
@@ -24,6 +33,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
 
   adminer:
     image: adminer
