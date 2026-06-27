@@ -41,17 +41,39 @@ PWA web de suivi de scores pour parties de cartes. Un hôte crée et gère la pa
 
 ---
 
-## Phase 2 — Partage & temps réel
+## Phase 2 — Partage & temps réel ✅ Complétée
 
-### 2.1 Vue spectateur (lecture seule)
-- [ ] Route `/view/[viewToken]` accessible sans mot de passe
-- [ ] Affichage identique au scoreboard admin mais sans contrôles
-- [ ] Mise à jour automatique via polling (déjà en place côté admin, à exposer)
+### 2.1 Vue spectateur (lecture seule) ✅
+- [x] Route `/view/[viewToken]` accessible sans mot de passe
+- [x] Affichage identique au scoreboard admin mais sans contrôles
+- [x] Mise à jour automatique via polling toutes les 4 secondes
+- [x] Indicateur "En direct" dans le header spectateur
 
-### 2.2 Partage de la partie
-- [ ] Bouton "Partager" dans la vue admin
-- [ ] Affichage du lien spectateur
-- [ ] QR code scannable pour rejoindre rapidement
+### 2.2 Partage de la partie ✅
+- [x] Bouton "Partager" dans le menu admin (sheet bas d'écran)
+- [x] Affichage du lien spectateur avec bouton copier
+- [x] QR code scannable généré à la volée (`qrcode.react`)
+
+### 2.3 Découverte des parties ✅
+- [x] Liste des parties en cours sur la page d'accueil (joueurs, manche en cours)
+- [x] Lien direct vers la vue spectateur depuis la page d'accueil
+
+### 2.4 Saisie mobile ✅
+- [x] Boutons +/− pour la saisie des paris et des plis (remplacement des `<input type="number">`)
+- [x] Touch targets agrandis (48×48 px)
+
+---
+
+## Phase 2.5 — Administration ✅ Complétée
+
+### 2.5.1 Page admin `/admin` ✅
+- [x] Tableau de toutes les parties (actives et terminées)
+- [x] Colonnes : joueurs, statut, manches, date de création, dernière activité
+- [x] Tri par colonne (clic sur l'en-tête, toggle asc/desc)
+- [x] Pagination (20 parties par page)
+- [x] Suppression directe avec confirmation
+- [x] Liens rapides vers vue admin et vue spectateur de chaque partie
+- [x] Protection par mot de passe via Basic Auth (`ADMIN_PASSWORD` env var)
 
 ---
 
@@ -108,3 +130,4 @@ PWA web de suivi de scores pour parties de cartes. Un hôte crée et gère la pa
 | Q7 | Ajout joueur en cours | L'admin choisit le score de départ et la position |
 | Q8 | Menu admin | Sheet bas d'écran, déclenché depuis le header |
 | Q9 | Fin de partie | Disponible dès qu'il y a des scores, bloqué pendant la phase PLAYING |
+| Q10 | Page admin | Protégée par Basic Auth via `ADMIN_PASSWORD` env var ; ouverte si non définie |
