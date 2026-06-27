@@ -64,6 +64,46 @@ function buildGameState(game: GameWithRelations, isAdmin: boolean): GameState {
   }
 }
 
+// ─── Admin panel ─────────────────────────────────────────────────────────────
+
+export interface AdminGameSummary {
+  id: string
+  adminToken: string
+  viewToken: string
+  status: 'ACTIVE' | 'FINISHED'
+  playerNames: string[]
+  roundCount: number
+  createdAt: Date
+  lastActivity: Date
+}
+
+export async function listAllGamesAdmin(): Promise<AdminGameSummary[]> {
+  const games = await prisma.game.findMany({
+    orderBy: { createdAt: 'desc' },
+    include: {
+      players: { orderBy: { order: 'asc' }, select: { name: true } },
+      rounds: { orderBy: { number: 'desc' }, take: 1, select: { number: true, createdAt: true } },
+    },
+  })
+
+  return games.map((g) => ({
+    id: g.id,
+    adminToken: g.adminToken,
+    viewToken: g.viewToken,
+    status: g.status as 'ACTIVE' | 'FINISHED',
+    playerNames: g.players.map((p) => p.name),
+    roundCount: g.rounds[0]?.number ?? 0,
+    createdAt: g.createdAt,
+    lastActivity: g.rounds[0]?.createdAt ?? g.createdAt,
+  }))
+}
+
+export async function deleteGameById(id: string): Promise<void> {
+  const game = await prisma.game.findUnique({ where: { id } })
+  if (!game) throw new ApiError('Game not found', 404)
+  await prisma.game.delete({ where: { id } })
+}
+
 // ─── Active games list ───────────────────────────────────────────────────────
 
 export interface GameSummary {
