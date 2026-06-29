@@ -3,6 +3,7 @@ import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
 import { listAllGamesAdmin, type AdminGameSummary } from '@/lib/game-service'
 import { Button } from '@/components/ui/button'
 import { DeleteGameButton } from './DeleteGameButton'
+import { AppHeader } from '@/components/AppHeader'
 
 export const dynamic = 'force-dynamic'
 
@@ -84,17 +85,14 @@ export default async function AdminPage({
   const headerProps = { currentSort: sort, currentOrder: order, rawParams }
 
   return (
-    <main className="max-w-6xl mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold">Admin</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {allGames.length} partie{allGames.length !== 1 ? 's' : ''}
-          </p>
-        </div>
-        <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-          ← Accueil
-        </Link>
+    <div className="min-h-screen flex flex-col">
+    <AppHeader backHref="/" title="Admin" />
+    <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-8">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold">Admin</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          {allGames.length} partie{allGames.length !== 1 ? 's' : ''}
+        </p>
       </div>
 
       <div className="rounded-xl border overflow-hidden">
@@ -181,5 +179,6 @@ export default async function AdminPage({
         )}
       </div>
     </main>
+    </div>
   )
 }

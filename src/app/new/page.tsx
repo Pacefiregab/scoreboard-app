@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { PlayerNameInput } from '@/components/PlayerNameInput'
+import { AppHeader } from '@/components/AppHeader'
 import { ChevronUp, ChevronDown, X, Plus } from 'lucide-react'
 
 export default function NewGamePage() {
@@ -71,7 +72,9 @@ export default function NewGamePage() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center p-6">
+    <div className="min-h-screen flex flex-col">
+      <AppHeader backHref="/" />
+    <main className="flex-1 flex flex-col items-center justify-center p-6">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>Nouvelle partie · L&apos;Enculette</CardTitle>
@@ -130,5 +133,6 @@ export default function NewGamePage() {
         </CardContent>
       </Card>
     </main>
+    </div>
   )
 }
