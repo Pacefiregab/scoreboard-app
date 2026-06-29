@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation'
 import { Home, Radio } from 'lucide-react'
 import { useGame } from '@/hooks/useGame'
 import { GameContext } from '@/context/GameContext'
+import { ThemeToggle } from '@/components/ThemeToggle'
 
 export default function ViewTokenLayout({ children }: { children: React.ReactNode }) {
   const params = useParams()
@@ -31,6 +32,7 @@ export default function ViewTokenLayout({ children }: { children: React.ReactNod
                 En direct
               </span>
             )}
+            <ThemeToggle />
           </div>
         </header>
         <div className="flex-1">{children}</div>

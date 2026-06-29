@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { PlayerNameInput } from '@/components/PlayerNameInput'
 
 interface Props {
   game: GameState
@@ -74,10 +75,11 @@ export function AddPlayerDialog({ game, open, onOpenChange, onAdded }: Props) {
         <div className="space-y-4 pt-2">
           <div className="space-y-1">
             <Label>Nom</Label>
-            <Input
+            <PlayerNameInput
               placeholder="Prénom du joueur"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={setName}
+              exclude={game.players.map((p) => p.name)}
               autoFocus
             />
           </div>

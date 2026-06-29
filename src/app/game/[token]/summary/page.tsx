@@ -4,6 +4,7 @@ import { getGame } from '@/lib/game-service'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { WinnerEffect } from '@/components/WinnerEffect'
 
 export default async function SummaryPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
@@ -20,10 +21,7 @@ export default async function SummaryPage({ params }: { params: Promise<{ token:
 
   return (
     <main className="min-h-screen p-4 max-w-lg mx-auto space-y-4 pb-8">
-      <div className="text-center pt-4 space-y-1">
-        <p className="text-muted-foreground text-sm">Partie terminée</p>
-        <h1 className="text-2xl font-bold">{winner.name} gagne !</h1>
-      </div>
+      <WinnerEffect name={winner.name} />
 
       <Card>
         <CardHeader className="pb-2">

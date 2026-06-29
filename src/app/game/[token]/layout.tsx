@@ -6,6 +6,7 @@ import { Home } from 'lucide-react'
 import { useGame } from '@/hooks/useGame'
 import { GameContext } from '@/context/GameContext'
 import { GameMenu } from '@/components/game/GameMenu'
+import { ThemeToggle } from '@/components/ThemeToggle'
 
 export default function GameTokenLayout({ children }: { children: React.ReactNode }) {
   const params = useParams()
@@ -26,6 +27,7 @@ export default function GameTokenLayout({ children }: { children: React.ReactNod
             </Link>
             <div className="h-4 w-px bg-border" />
             <span className="text-sm font-semibold flex-1">Scoreboard</span>
+            <ThemeToggle />
             {game?.isAdmin && game.status === 'ACTIVE' && (
               <GameMenu game={game} onAction={refresh} />
             )}

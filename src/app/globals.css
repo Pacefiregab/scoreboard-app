@@ -3,6 +3,7 @@
 @import "shadcn/tailwind.css";
 
 @custom-variant dark (&:is(.dark *));
+@custom-variant rose (&:is(.rose *));
 
 @theme inline {
   --color-background: var(--background);
@@ -115,6 +116,48 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+}
+
+.rose {
+  --background: oklch(0.99 0.008 355);
+  --foreground: oklch(0.18 0.04 355);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.18 0.04 355);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.18 0.04 355);
+  --primary: oklch(0.59 0.22 352);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.96 0.025 352);
+  --secondary-foreground: oklch(0.18 0.04 355);
+  --muted: oklch(0.96 0.015 352);
+  --muted-foreground: oklch(0.54 0.07 352);
+  --accent: oklch(0.95 0.03 352);
+  --accent-foreground: oklch(0.18 0.04 355);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.91 0.035 352);
+  --input: oklch(0.91 0.035 352);
+  --ring: oklch(0.59 0.22 352);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.97 0.02 352);
+  --sidebar-foreground: oklch(0.18 0.04 355);
+  --sidebar-primary: oklch(0.59 0.22 352);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.95 0.03 352);
+  --sidebar-accent-foreground: oklch(0.18 0.04 355);
+  --sidebar-border: oklch(0.91 0.035 352);
+  --sidebar-ring: oklch(0.59 0.22 352);
+}
+
+@keyframes winner-pop {
+  0%   { opacity: 0; transform: scale(0.4) rotate(-6deg); }
+  60%  { opacity: 1; transform: scale(1.12) rotate(2deg); }
+  80%  { transform: scale(0.96) rotate(-1deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+
+@keyframes trophy-bounce {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-10px); }
 }
 
 @layer base {

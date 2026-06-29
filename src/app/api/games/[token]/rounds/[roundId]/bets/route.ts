@@ -1,5 +1,5 @@
 import { ok, handleError } from '@/lib/api-helpers'
-import { submitBets } from '@/lib/game-service'
+import { submitBets, resetBets } from '@/lib/game-service'
 
 type Params = Promise<{ token: string; roundId: string }>
 
@@ -25,6 +25,16 @@ export async function POST(req: Request, { params }: { params: Params }) {
     }
 
     await submitBets(token, roundId, body.bets as { playerId: string; announced: number }[])
+    return ok({ ok: true })
+  } catch (e) {
+    return handleError(e)
+  }
+}
+
+export async function DELETE(_req: Request, { params }: { params: Params }) {
+  try {
+    const { token, roundId } = await params
+    await resetBets(token, roundId)
     return ok({ ok: true })
   } catch (e) {
     return handleError(e)

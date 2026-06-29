@@ -215,7 +215,8 @@ export async function submitBets(
   if (!round) throw new ApiError('Round not found', 404)
   if (round.status !== 'BETTING') throw new ApiError('Round is not in betting phase', 409)
 
-  const playerIds = game.players.map((p) => p.id)
+  const activePlayers = game.players.filter((p) => p.active)
+  const playerIds = activePlayers.map((p) => p.id)
   const betPlayerIds = bets.map((b) => b.playerId)
   const missing = playerIds.filter((id) => !betPlayerIds.includes(id))
   const unknown = betPlayerIds.filter((id) => !playerIds.includes(id))
@@ -226,7 +227,7 @@ export async function submitBets(
   // The constrained player rotates each round (display order stays fixed):
   // round 1 → last player, round 2 → first, round 3 → second, etc.
   // Constrained index = (round.number - 2 + n) % n
-  const sortedPlayers = [...game.players].sort((a, b) => a.order - b.order)
+  const sortedPlayers = [...activePlayers].sort((a, b) => a.order - b.order)
   const n = sortedPlayers.length
   const constrainedPlayer = sortedPlayers[(round.number - 2 + n) % n]!
   const constrainedBet = bets.find((b) => b.playerId === constrainedPlayer.id)!
@@ -244,6 +245,18 @@ export async function submitBets(
   await prisma.$transaction([
     prisma.bet.createMany({ data: bets.map((b) => ({ roundId, playerId: b.playerId, announced: b.announced })) }),
     prisma.round.update({ where: { id: roundId }, data: { status: 'PLAYING' } }),
+  ])
+}
+
+export async function resetBets(adminToken: string, roundId: string): Promise<void> {
+  const game = await findActiveGameByAdminToken(adminToken)
+  const round = game.rounds.find((r) => r.id === roundId)
+  if (!round) throw new ApiError('Round not found', 404)
+  if (round.status !== 'PLAYING') throw new ApiError('Round is not in playing phase', 409)
+
+  await prisma.$transaction([
+    prisma.bet.deleteMany({ where: { roundId } }),
+    prisma.round.update({ where: { id: roundId }, data: { status: 'BETTING' } }),
   ])
 }
 
@@ -341,6 +354,115 @@ export async function addPlayer(adminToken: string, name: string, initialScore: 
     ),
     prisma.player.create({ data: { gameId: game.id, name: name.trim(), order: insertAt, initialScore } }),
   ])
+}
+
+// ─── Known player names (for autocomplete) ───────────────────────────────────
+
+export async function getKnownPlayerNames(): Promise<string[]> {
+  const rows = await prisma.player.findMany({ select: { name: true } })
+  const freq = new Map<string, { name: string; count: number }>()
+  for (const { name } of rows) {
+    const key = name.trim().toLowerCase()
+    const existing = freq.get(key)
+    if (existing) existing.count++
+    else freq.set(key, { name: name.trim(), count: 1 })
+  }
+  return [...freq.values()]
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+    .map((v) => v.name)
+}
+
+// ─── Player stats ────────────────────────────────────────────────────────────
+
+export interface PlayerStat {
+  name: string
+  gamesPlayed: number
+  wins: number
+  winRate: number
+  roundsPlayed: number
+  betsWon: number
+  contractRate: number
+  avgFinalScore: number
+  bestScore: number
+}
+
+export async function getPlayerStats(): Promise<PlayerStat[]> {
+  const games = await prisma.game.findMany({
+    where: { status: 'FINISHED' },
+    include: {
+      players: true,
+      rounds: {
+        where: { status: 'DONE' },
+        include: { bets: true, scores: true },
+      },
+    },
+  })
+
+  // key = trimmed lowercase name
+  const accum = new Map<string, {
+    name: string
+    gamesPlayed: number
+    wins: number
+    roundsPlayed: number
+    betsWon: number
+    scoreSum: number
+    bestScore: number
+  }>()
+
+  for (const game of games) {
+    // Compute final score per player in this game
+    const finalScores = new Map<string, number>()
+    for (const player of game.players) {
+      const last = game.rounds.flatMap((r) => r.scores).filter((s) => s.playerId === player.id).at(-1)
+      finalScores.set(player.id, last ? last.totalPoints : player.initialScore)
+    }
+
+    const maxScore = Math.max(...finalScores.values())
+    const winnerIds = new Set(
+      [...finalScores.entries()].filter(([, s]) => s === maxScore).map(([id]) => id),
+    )
+
+    for (const player of game.players) {
+      const key = player.name.trim().toLowerCase()
+      const existing = accum.get(key) ?? {
+        name: player.name.trim(),
+        gamesPlayed: 0,
+        wins: 0,
+        roundsPlayed: 0,
+        betsWon: 0,
+        scoreSum: 0,
+        bestScore: -Infinity,
+      }
+
+      const finalScore = finalScores.get(player.id) ?? 0
+      const playerBets = game.rounds.flatMap((r) => r.bets).filter((b) => b.playerId === player.id && b.actual !== null)
+      const won = playerBets.filter((b) => b.actual === b.announced).length
+
+      accum.set(key, {
+        ...existing,
+        gamesPlayed: existing.gamesPlayed + 1,
+        wins: existing.wins + (winnerIds.has(player.id) ? 1 : 0),
+        roundsPlayed: existing.roundsPlayed + playerBets.length,
+        betsWon: existing.betsWon + won,
+        scoreSum: existing.scoreSum + finalScore,
+        bestScore: Math.max(existing.bestScore, finalScore),
+      })
+    }
+  }
+
+  return [...accum.values()]
+    .map((s) => ({
+      name: s.name,
+      gamesPlayed: s.gamesPlayed,
+      wins: s.wins,
+      winRate: s.gamesPlayed > 0 ? s.wins / s.gamesPlayed : 0,
+      roundsPlayed: s.roundsPlayed,
+      betsWon: s.betsWon,
+      contractRate: s.roundsPlayed > 0 ? s.betsWon / s.roundsPlayed : 0,
+      avgFinalScore: s.gamesPlayed > 0 ? Math.round(s.scoreSum / s.gamesPlayed) : 0,
+      bestScore: s.bestScore === -Infinity ? 0 : s.bestScore,
+    }))
+    .sort((a, b) => b.wins - a.wins || b.winRate - a.winRate || b.gamesPlayed - a.gamesPlayed)
 }
 
 export async function cancelGame(adminToken: string): Promise<void> {

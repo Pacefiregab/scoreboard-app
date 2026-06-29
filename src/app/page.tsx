@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { JoinForm } from '@/components/JoinForm'
 import { listActiveGames } from '@/lib/game-service'
-import { Users } from 'lucide-react'
+import { Users, BarChart2 } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -30,6 +30,14 @@ export default async function HomePage() {
         </div>
 
         <JoinForm />
+
+        <Link
+          href="/stats"
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mt-1"
+        >
+          <BarChart2 size={14} />
+          Voir les statistiques
+        </Link>
       </div>
 
       {activeGames.length > 0 && (

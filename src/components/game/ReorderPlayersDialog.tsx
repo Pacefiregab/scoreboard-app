@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { GameState, PlayerState } from '@/types/game'
 import { getNextRoundNumber, getConstrainedIndex } from '@/lib/constrained-player'
 import { Button } from '@/components/ui/button'
@@ -19,6 +19,12 @@ export function ReorderPlayersDialog({ game, open, onClose, onDone }: Props) {
     [...game.players].sort((a, b) => a.order - b.order),
   )
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (open) {
+      setPlayers([...game.players].sort((a, b) => a.order - b.order))
+    }
+  }, [open, game.players])
 
   const nextRoundNumber = getNextRoundNumber(game)
   const activePlayers = players.filter((p) => p.active)

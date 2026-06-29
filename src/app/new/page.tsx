@@ -3,8 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { PlayerNameInput } from '@/components/PlayerNameInput'
 import { ChevronUp, ChevronDown, X, Plus } from 'lucide-react'
 
 export default function NewGamePage() {
@@ -98,12 +98,13 @@ export default function NewGamePage() {
                   </button>
                 </div>
                 <span className="text-sm text-muted-foreground w-5 text-right">{index + 1}.</span>
-                <Input
+                <PlayerNameInput
                   placeholder={`Joueur ${index + 1}`}
                   value={name}
-                  onChange={(e) => updatePlayer(index, e.target.value)}
+                  onChange={(v) => updatePlayer(index, v)}
                   onKeyDown={(e) => e.key === 'Enter' && addPlayer()}
                   autoFocus={index === players.length - 1 && index > 1}
+                  exclude={players.filter((_, i) => i !== index).filter(Boolean)}
                 />
                 <button
                   onClick={() => removePlayer(index)}

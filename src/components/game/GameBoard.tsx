@@ -59,6 +59,18 @@ export function GameBoard() {
     refresh()
   }
 
+  async function resetBets() {
+    if (!currentRound) return
+    const res = await fetch(`/api/games/${token}/rounds/${currentRound.id}/bets`, {
+      method: 'DELETE',
+    })
+    if (!res.ok) {
+      const data = await res.json() as { error?: string }
+      throw new Error(data.error ?? 'Erreur')
+    }
+    refresh()
+  }
+
   const showControls =
     isAdmin &&
     game.status === 'ACTIVE' &&
@@ -70,7 +82,7 @@ export function GameBoard() {
         <BettingPhase game={game} round={currentRound} onSubmit={submitBets} />
       )}
       {currentRound?.status === 'PLAYING' && (
-        <PlayingPhase game={game} round={currentRound} onSubmit={submitResults} />
+        <PlayingPhase game={game} round={currentRound} onSubmit={submitResults} onBack={resetBets} />
       )}
       {showControls && <GameControls game={game} onAction={refresh} />}
     </>
