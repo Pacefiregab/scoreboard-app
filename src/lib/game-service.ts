@@ -393,6 +393,7 @@ export async function getPlayerStats(): Promise<PlayerStat[]> {
       players: true,
       rounds: {
         where: { status: 'DONE' },
+        orderBy: { number: 'asc' as const },
         include: { bets: true, scores: true },
       },
     },
