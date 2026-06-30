@@ -356,6 +356,38 @@ export async function addPlayer(adminToken: string, name: string, initialScore: 
   ])
 }
 
+// ─── Admin: player management ────────────────────────────────────────────────
+
+export interface PlayerEntry {
+  name: string
+  count: number
+}
+
+export async function getDistinctPlayerNames(): Promise<PlayerEntry[]> {
+  const rows = await prisma.player.findMany({ select: { name: true } })
+  const map = new Map<string, { name: string; count: number }>()
+  for (const { name } of rows) {
+    const key = name.trim().toLowerCase()
+    const existing = map.get(key)
+    if (existing) existing.count++
+    else map.set(key, { name: name.trim(), count: 1 })
+  }
+  return [...map.values()].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+}
+
+export async function mergePlayersByName(fromName: string, toName: string): Promise<number> {
+  const result = await prisma.player.updateMany({
+    where: { name: fromName },
+    data: { name: toName },
+  })
+  return result.count
+}
+
+export async function deletePlayersByName(name: string): Promise<number> {
+  const result = await prisma.player.deleteMany({ where: { name } })
+  return result.count
+}
+
 // ─── Known player names (for autocomplete) ───────────────────────────────────
 
 export async function getKnownPlayerNames(): Promise<string[]> {

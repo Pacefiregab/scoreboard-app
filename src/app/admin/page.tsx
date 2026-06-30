@@ -1,8 +1,9 @@
 import Link from 'next/link'
 import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
-import { listAllGamesAdmin, type AdminGameSummary } from '@/lib/game-service'
+import { listAllGamesAdmin, getDistinctPlayerNames, type AdminGameSummary } from '@/lib/game-service'
 import { Button } from '@/components/ui/button'
 import { DeleteGameButton } from './DeleteGameButton'
+import { PlayerManagement } from './PlayerManagement'
 import { AppHeader } from '@/components/AppHeader'
 
 export const dynamic = 'force-dynamic'
@@ -75,7 +76,10 @@ export default async function AdminPage({
   const order = (sp.order ?? 'desc') as SortOrder
   const page = Math.max(1, parseInt(sp.page ?? '1', 10))
 
-  const allGames = await listAllGamesAdmin()
+  const [allGames, playerNames] = await Promise.all([
+    listAllGamesAdmin(),
+    getDistinctPlayerNames(),
+  ])
   const sorted = sortGames(allGames, sort, order)
   const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
   const currentPage = Math.min(page, totalPages)
@@ -177,6 +181,12 @@ export default async function AdminPage({
             </div>
           </div>
         )}
+      </div>
+
+      {/* Player management */}
+      <div className="mt-10">
+        <h2 className="text-lg font-semibold mb-4">Gestion des joueurs</h2>
+        <PlayerManagement players={playerNames} />
       </div>
     </main>
     </div>
