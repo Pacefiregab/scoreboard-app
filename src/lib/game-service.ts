@@ -420,9 +420,12 @@ export interface PlayerStat {
   f1Points: number
 }
 
-export async function getPlayerStats(): Promise<PlayerStat[]> {
+export async function getPlayerStats(options?: { finishedSince?: Date }): Promise<PlayerStat[]> {
   const games = await prisma.game.findMany({
-    where: { status: 'FINISHED' },
+    where: {
+      status: 'FINISHED',
+      ...(options?.finishedSince ? { finishedAt: { gte: options.finishedSince } } : {}),
+    },
     include: {
       players: true,
       rounds: {

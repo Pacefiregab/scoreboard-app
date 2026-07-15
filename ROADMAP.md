@@ -127,7 +127,7 @@ PWA web de suivi de scores pour parties de cartes. Un hôte crée et gère la pa
 
 - [ ] Évolution du taux de contrat dans le temps
 - [ ] Statistiques de rivalité entre joueurs
-- [ ] Classement par période
+- [x] Récap hebdomadaire (joueur de la semaine, podium, records de la semaine)
 
 ---
 

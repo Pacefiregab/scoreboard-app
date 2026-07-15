@@ -2,17 +2,31 @@ import Link from 'next/link'
 import { getPlayerStats, getScoringConfig } from '@/lib/game-service'
 import { prisma } from '@/lib/prisma'
 import { StatsDisplay } from '@/components/StatsDisplay'
+import { WeeklyRecap } from '@/components/WeeklyRecap'
 import { AppHeader } from '@/components/AppHeader'
 
 export const dynamic = 'force-dynamic'
 
 export const metadata = { title: 'Statistiques' }
 
+// Monday 00:00 of the current week
+function startOfWeek(now = new Date()): Date {
+  const d = new Date(now)
+  const day = (d.getDay() + 6) % 7
+  d.setDate(d.getDate() - day)
+  d.setHours(0, 0, 0, 0)
+  return d
+}
+
 export default async function StatsPage() {
-  const [stats, finishedCount, scoringConfig] = await Promise.all([
+  const weekStart = startOfWeek()
+
+  const [stats, finishedCount, scoringConfig, weeklyStats, weeklyCount] = await Promise.all([
     getPlayerStats(),
     prisma.game.count({ where: { status: 'FINISHED' } }),
     getScoringConfig(),
+    getPlayerStats({ finishedSince: weekStart }),
+    prisma.game.count({ where: { status: 'FINISHED', finishedAt: { gte: weekStart } } }),
   ])
 
   if (finishedCount === 0) {
@@ -40,6 +54,12 @@ export default async function StatsPage() {
             {finishedCount} partie{finishedCount !== 1 ? 's' : ''} terminée{finishedCount !== 1 ? 's' : ''} · {stats.length} joueur{stats.length !== 1 ? 's' : ''}
           </p>
         </div>
+        <WeeklyRecap
+          stats={weeklyStats}
+          gamesCount={weeklyCount}
+          scoringConfig={scoringConfig}
+          weekStart={weekStart}
+        />
         <StatsDisplay stats={stats} finishedCount={finishedCount} scoringConfig={scoringConfig} />
       </main>
     </div>
