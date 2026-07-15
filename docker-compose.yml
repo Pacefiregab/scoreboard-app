@@ -30,6 +30,7 @@ services:
       - "${APP_PORT:-3000}:3000"
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-scoreboard}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-scoreboard}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
     depends_on:
       db:
         condition: service_healthy

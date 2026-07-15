@@ -94,6 +94,8 @@ POSTGRES_USER=scoreboard
 POSTGRES_PASSWORD=un_mot_de_passe_solide
 POSTGRES_DB=scoreboard
 APP_PORT=3000
+# Protège /admin par Basic Auth (laisser vide = page ouverte)
+ADMIN_PASSWORD=un_autre_mot_de_passe
 ```
 
 > Ne jamais committer `.env` — il est dans `.gitignore`.
@@ -103,7 +105,7 @@ APP_PORT=3000
 1. Portainer → **Stacks** → **Add stack**
 2. Nommer le stack (ex: `scoreboard`)
 3. Uploader `docker-compose.yml` ou coller son contenu
-4. Ajouter les variables d'environnement (`POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `APP_PORT`)
+4. Ajouter les variables d'environnement (`POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `APP_PORT`, `ADMIN_PASSWORD`)
 5. **Deploy the stack**
 
 ### 3. Appliquer les migrations
