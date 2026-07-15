@@ -3,6 +3,7 @@ import { prisma } from './prisma'
 import { computeRoundScores, isLastBetValid, isGameOver, nextCardCount } from './enculette'
 import { ApiError } from './api-helpers'
 import type { GameState, RoundState } from '@/types/game'
+import { DEFAULT_CONFIG, type ScoringConfig } from './scoring'
 
 // ─── Prisma include + inferred type ─────────────────────────────────────────
 
@@ -416,6 +417,7 @@ export interface PlayerStat {
   contractRate: number
   avgFinalScore: number
   bestScore: number
+  f1Points: number
 }
 
 export async function getPlayerStats(): Promise<PlayerStat[]> {
@@ -431,6 +433,8 @@ export async function getPlayerStats(): Promise<PlayerStat[]> {
     },
   })
 
+  const F1 = [10, 6, 3, 1]
+
   // key = trimmed lowercase name
   const accum = new Map<string, {
     name: string
@@ -440,6 +444,7 @@ export async function getPlayerStats(): Promise<PlayerStat[]> {
     betsWon: number
     scoreSum: number
     bestScore: number
+    f1Points: number
   }>()
 
   for (const game of games) {
@@ -455,6 +460,21 @@ export async function getPlayerStats(): Promise<PlayerStat[]> {
       [...finalScores.entries()].filter(([, s]) => s === maxScore).map(([id]) => id),
     )
 
+    // F1 points: rank players by final score, assign 10/6/3/1 (ties share the same rank)
+    const sortedForF1 = [...game.players].sort(
+      (a, b) => (finalScores.get(b.id) ?? 0) - (finalScores.get(a.id) ?? 0),
+    )
+    const gameF1 = new Map<string, number>()
+    let f1Rank = 0
+    let prevF1Score: number | null = null
+    for (let i = 0; i < sortedForF1.length; i++) {
+      const p = sortedForF1[i]!
+      const sc = finalScores.get(p.id) ?? 0
+      if (sc !== prevF1Score) f1Rank = i
+      gameF1.set(p.id, F1[f1Rank] ?? 0)
+      prevF1Score = sc
+    }
+
     for (const player of game.players) {
       const key = player.name.trim().toLowerCase()
       const existing = accum.get(key) ?? {
@@ -465,6 +485,7 @@ export async function getPlayerStats(): Promise<PlayerStat[]> {
         betsWon: 0,
         scoreSum: 0,
         bestScore: -Infinity,
+        f1Points: 0,
       }
 
       const finalScore = finalScores.get(player.id) ?? 0
@@ -479,6 +500,7 @@ export async function getPlayerStats(): Promise<PlayerStat[]> {
         betsWon: existing.betsWon + won,
         scoreSum: existing.scoreSum + finalScore,
         bestScore: Math.max(existing.bestScore, finalScore),
+        f1Points: existing.f1Points + (gameF1.get(player.id) ?? 0),
       })
     }
   }
@@ -494,8 +516,29 @@ export async function getPlayerStats(): Promise<PlayerStat[]> {
       contractRate: s.roundsPlayed > 0 ? s.betsWon / s.roundsPlayed : 0,
       avgFinalScore: s.gamesPlayed > 0 ? Math.round(s.scoreSum / s.gamesPlayed) : 0,
       bestScore: s.bestScore === -Infinity ? 0 : s.bestScore,
+      f1Points: s.f1Points,
     }))
     .sort((a, b) => b.wins - a.wins || b.winRate - a.winRate || b.gamesPlayed - a.gamesPlayed)
+}
+
+// ─── Scoring config ───────────────────────────────────────────────────────────
+
+export async function getScoringConfig(): Promise<ScoringConfig> {
+  const setting = await prisma.setting.findUnique({ where: { key: 'scoringConfig' } })
+  if (!setting) return DEFAULT_CONFIG
+  try {
+    return JSON.parse(setting.value) as ScoringConfig
+  } catch {
+    return DEFAULT_CONFIG
+  }
+}
+
+export async function saveScoringConfig(config: ScoringConfig): Promise<void> {
+  await prisma.setting.upsert({
+    where: { key: 'scoringConfig' },
+    update: { value: JSON.stringify(config) },
+    create: { key: 'scoringConfig', value: JSON.stringify(config) },
+  })
 }
 
 export async function cancelGame(adminToken: string): Promise<void> {

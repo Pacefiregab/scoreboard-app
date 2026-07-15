@@ -1,6 +1,7 @@
 'use server'
 
-import { deleteGameById, mergePlayersByName, deletePlayersByName } from '@/lib/game-service'
+import { deleteGameById, mergePlayersByName, deletePlayersByName, saveScoringConfig } from '@/lib/game-service'
+import type { ScoringConfig } from '@/lib/scoring'
 import { revalidatePath } from 'next/cache'
 
 export async function deleteGameAction(id: string) {
@@ -20,4 +21,9 @@ export async function deletePlayersAction(name: string): Promise<number> {
   revalidatePath('/admin')
   revalidatePath('/stats')
   return count
+}
+
+export async function saveScoringConfigAction(config: ScoringConfig): Promise<void> {
+  await saveScoringConfig(config)
+  revalidatePath('/stats')
 }

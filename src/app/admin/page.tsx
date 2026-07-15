@@ -1,9 +1,11 @@
 import Link from 'next/link'
 import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
-import { listAllGamesAdmin, getDistinctPlayerNames, type AdminGameSummary } from '@/lib/game-service'
+import { listAllGamesAdmin, getDistinctPlayerNames, getScoringConfig, type AdminGameSummary } from '@/lib/game-service'
 import { Button } from '@/components/ui/button'
 import { DeleteGameButton } from './DeleteGameButton'
 import { PlayerManagement } from './PlayerManagement'
+import { ScoringSection } from './ScoringSection'
+import { AdminBurgerMenu } from './AdminBurgerMenu'
 import { AppHeader } from '@/components/AppHeader'
 
 export const dynamic = 'force-dynamic'
@@ -12,6 +14,7 @@ const PAGE_SIZE = 20
 
 type SortKey = 'players' | 'status' | 'rounds' | 'created' | 'activity'
 type SortOrder = 'asc' | 'desc'
+type Tab = 'games' | 'players' | 'score'
 
 function fmt(date: Date) {
   return new Intl.DateTimeFormat('fr-FR', {
@@ -72,123 +75,155 @@ export default async function AdminPage({
   searchParams: Promise<Record<string, string>>
 }) {
   const sp = await searchParams
+  const tab = (sp.tab ?? 'games') as Tab
   const sort = (sp.sort ?? 'created') as SortKey
   const order = (sp.order ?? 'desc') as SortOrder
   const page = Math.max(1, parseInt(sp.page ?? '1', 10))
 
-  const [allGames, playerNames] = await Promise.all([
-    listAllGamesAdmin(),
-    getDistinctPlayerNames(),
+  const [allGames, playerNames, scoringConfig] = await Promise.all([
+    tab === 'games' ? listAllGamesAdmin() : Promise.resolve([] as AdminGameSummary[]),
+    tab === 'players' ? getDistinctPlayerNames() : Promise.resolve([] as Awaited<ReturnType<typeof getDistinctPlayerNames>>),
+    getScoringConfig(),
   ])
-  const sorted = sortGames(allGames, sort, order)
+
+  const sorted = tab === 'games' ? sortGames(allGames, sort, order) : []
   const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
   const currentPage = Math.min(page, totalPages)
   const games = sorted.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
 
-  const rawParams = { sort, order, page: String(currentPage) }
+  const rawParams = { tab, sort, order, page: String(currentPage) }
   const headerProps = { currentSort: sort, currentOrder: order, rawParams }
 
   return (
     <div className="min-h-screen flex flex-col">
-    <AppHeader backHref="/" title="Admin" />
-    <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">Admin</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          {allGames.length} partie{allGames.length !== 1 ? 's' : ''}
-        </p>
-      </div>
+      <AppHeader backHref="/" title="Admin">
+        <AdminBurgerMenu currentTab={tab} />
+      </AppHeader>
+      <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-8">
 
-      <div className="rounded-xl border overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-muted/50 border-b text-muted-foreground">
-            <tr>
-              <th className="text-left px-4 py-3 font-medium">
-                <SortHeader label="Joueurs" sortKey="players" {...headerProps} />
-              </th>
-              <th className="text-left px-4 py-3 font-medium">
-                <SortHeader label="Statut" sortKey="status" {...headerProps} />
-              </th>
-              <th className="text-left px-4 py-3 font-medium">
-                <SortHeader label="Manches" sortKey="rounds" {...headerProps} />
-              </th>
-              <th className="text-left px-4 py-3 font-medium">
-                <SortHeader label="Créée le" sortKey="created" {...headerProps} />
-              </th>
-              <th className="text-left px-4 py-3 font-medium">
-                <SortHeader label="Dernière activité" sortKey="activity" {...headerProps} />
-              </th>
-              <th className="px-4 py-3" />
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            {games.map((game) => (
-              <tr key={game.id} className="hover:bg-muted/30 transition-colors">
-                <td className="px-4 py-3">
-                  <p className="font-medium max-w-xs truncate">{game.playerNames.join(', ')}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5 space-x-2">
-                    <Link href={`/game/${game.adminToken}`} className="hover:underline">Admin</Link>
-                    <span>·</span>
-                    <Link href={`/view/${game.viewToken}`} className="hover:underline">Spectateur</Link>
-                  </p>
-                </td>
-                <td className="px-4 py-3">
-                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                    game.status === 'ACTIVE'
-                      ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                      : 'bg-muted text-muted-foreground'
-                  }`}>
-                    {game.status === 'ACTIVE' ? 'En cours' : 'Terminée'}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-muted-foreground">
-                  {game.roundCount > 0 ? game.roundCount : '—'}
-                </td>
-                <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
-                  {fmt(game.createdAt)}
-                </td>
-                <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
-                  {fmt(game.lastActivity)}
-                </td>
-                <td className="px-4 py-3">
-                  <DeleteGameButton id={game.id} />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        {allGames.length === 0 && (
-          <p className="text-center py-12 text-muted-foreground text-sm">Aucune partie</p>
-        )}
-
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t text-sm">
-            <p className="text-muted-foreground">
-              Page {currentPage} / {totalPages} — {allGames.length} parties
-            </p>
-            <div className="flex gap-2">
-              {currentPage > 1
-                ? <Link href={`/admin?${buildQuery(rawParams, { page: String(currentPage - 1) })}`}>
-                    <Button variant="outline" size="sm">← Précédent</Button>
-                  </Link>
-                : <Button variant="outline" size="sm" disabled>← Précédent</Button>}
-              {currentPage < totalPages
-                ? <Link href={`/admin?${buildQuery(rawParams, { page: String(currentPage + 1) })}`}>
-                    <Button variant="outline" size="sm">Suivant →</Button>
-                  </Link>
-                : <Button variant="outline" size="sm" disabled>Suivant →</Button>}
+        {/* ── Parties ── */}
+        {tab === 'games' && (
+          <>
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold">Parties</h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                {allGames.length} partie{allGames.length !== 1 ? 's' : ''}
+              </p>
             </div>
-          </div>
-        )}
-      </div>
 
-      {/* Player management */}
-      <div className="mt-10">
-        <h2 className="text-lg font-semibold mb-4">Gestion des joueurs</h2>
-        <PlayerManagement players={playerNames} />
-      </div>
-    </main>
+            <div className="rounded-xl border overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50 border-b text-muted-foreground">
+                  <tr>
+                    <th className="text-left px-4 py-3 font-medium">
+                      <SortHeader label="Joueurs" sortKey="players" {...headerProps} />
+                    </th>
+                    <th className="text-left px-4 py-3 font-medium">
+                      <SortHeader label="Statut" sortKey="status" {...headerProps} />
+                    </th>
+                    <th className="text-left px-4 py-3 font-medium">
+                      <SortHeader label="Manches" sortKey="rounds" {...headerProps} />
+                    </th>
+                    <th className="text-left px-4 py-3 font-medium">
+                      <SortHeader label="Créée le" sortKey="created" {...headerProps} />
+                    </th>
+                    <th className="text-left px-4 py-3 font-medium">
+                      <SortHeader label="Dernière activité" sortKey="activity" {...headerProps} />
+                    </th>
+                    <th className="px-4 py-3" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {games.map((game) => (
+                    <tr key={game.id} className="hover:bg-muted/30 transition-colors">
+                      <td className="px-4 py-3">
+                        <p className="font-medium max-w-xs truncate">{game.playerNames.join(', ')}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5 space-x-2">
+                          <Link href={`/game/${game.adminToken}`} className="hover:underline">Admin</Link>
+                          <span>·</span>
+                          <Link href={`/view/${game.viewToken}`} className="hover:underline">Spectateur</Link>
+                        </p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                          game.status === 'ACTIVE'
+                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                            : 'bg-muted text-muted-foreground'
+                        }`}>
+                          {game.status === 'ACTIVE' ? 'En cours' : 'Terminée'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {game.roundCount > 0 ? game.roundCount : '—'}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
+                        {fmt(game.createdAt)}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
+                        {fmt(game.lastActivity)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <DeleteGameButton id={game.id} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {allGames.length === 0 && (
+                <p className="text-center py-12 text-muted-foreground text-sm">Aucune partie</p>
+              )}
+
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between px-4 py-3 border-t text-sm">
+                  <p className="text-muted-foreground">
+                    Page {currentPage} / {totalPages} — {allGames.length} parties
+                  </p>
+                  <div className="flex gap-2">
+                    {currentPage > 1
+                      ? <Link href={`/admin?${buildQuery(rawParams, { page: String(currentPage - 1) })}`}>
+                          <Button variant="outline" size="sm">← Précédent</Button>
+                        </Link>
+                      : <Button variant="outline" size="sm" disabled>← Précédent</Button>}
+                    {currentPage < totalPages
+                      ? <Link href={`/admin?${buildQuery(rawParams, { page: String(currentPage + 1) })}`}>
+                          <Button variant="outline" size="sm">Suivant →</Button>
+                        </Link>
+                      : <Button variant="outline" size="sm" disabled>Suivant →</Button>}
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* ── Joueurs ── */}
+        {tab === 'players' && (
+          <>
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold">Gestion des joueurs</h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                {playerNames.length} joueur{playerNames.length !== 1 ? 's' : ''} distinct{playerNames.length !== 1 ? 's' : ''}
+              </p>
+            </div>
+            <PlayerManagement players={playerNames} />
+          </>
+        )}
+
+        {/* ── Classement ── */}
+        {tab === 'score' && (
+          <>
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold">Méthode de classement</h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                Configure comment les joueurs sont classés sur la page stats
+              </p>
+            </div>
+            <ScoringSection current={scoringConfig} />
+          </>
+        )}
+
+      </main>
     </div>
   )
 }

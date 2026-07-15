@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { getPlayerStats } from '@/lib/game-service'
+import { getPlayerStats, getScoringConfig } from '@/lib/game-service'
 import { prisma } from '@/lib/prisma'
 import { StatsDisplay } from '@/components/StatsDisplay'
 import { AppHeader } from '@/components/AppHeader'
@@ -9,9 +9,10 @@ export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Statistiques' }
 
 export default async function StatsPage() {
-  const [stats, finishedCount] = await Promise.all([
+  const [stats, finishedCount, scoringConfig] = await Promise.all([
     getPlayerStats(),
     prisma.game.count({ where: { status: 'FINISHED' } }),
+    getScoringConfig(),
   ])
 
   if (finishedCount === 0) {
@@ -39,7 +40,7 @@ export default async function StatsPage() {
             {finishedCount} partie{finishedCount !== 1 ? 's' : ''} terminée{finishedCount !== 1 ? 's' : ''} · {stats.length} joueur{stats.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <StatsDisplay stats={stats} finishedCount={finishedCount} />
+        <StatsDisplay stats={stats} finishedCount={finishedCount} scoringConfig={scoringConfig} />
       </main>
     </div>
   )

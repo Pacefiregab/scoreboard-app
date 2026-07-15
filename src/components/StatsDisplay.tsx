@@ -2,16 +2,18 @@
 
 import { useState, useMemo } from 'react'
 import type { PlayerStat } from '@/lib/game-service'
+import { rankByConfig, computeComposites, METHOD_META, type ScoringConfig } from '@/lib/scoring'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Trophy, TrendingUp, Target, Star, Hash, Gamepad2, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
+import { Trophy, TrendingUp, Target, Star, Hash, Gamepad2, ChevronUp, ChevronDown, ChevronsUpDown, Settings2 } from 'lucide-react'
 
 const PAGE_SIZE = 10
 
-type SortKey = keyof PlayerStat
+type ColKey = keyof PlayerStat
 type SortDir = 'asc' | 'desc'
+type RankMode = ColKey | 'auto'
 
-function sortStats(stats: PlayerStat[], key: SortKey, dir: SortDir): PlayerStat[] {
+function sortStats(stats: PlayerStat[], key: ColKey, dir: SortDir): PlayerStat[] {
   return [...stats].sort((a, b) => {
     const va = a[key]
     const vb = b[key]
@@ -45,10 +47,10 @@ function Th({
   right = false,
 }: {
   label: string
-  sortKey: SortKey
-  currentKey: SortKey
+  sortKey: ColKey
+  currentKey: RankMode
   currentDir: SortDir
-  onSort: (k: SortKey) => void
+  onSort: (k: ColKey) => void
   right?: boolean
 }) {
   const active = currentKey === sortKey
@@ -97,32 +99,48 @@ function StatCell({ icon, label, value }: { icon: React.ReactNode; label: string
 interface Props {
   stats: PlayerStat[]
   finishedCount: number
+  scoringConfig: ScoringConfig
 }
 
-export function StatsDisplay({ stats, finishedCount }: Props) {
-  // Ranking table sort
-  const [rankKey, setRankKey] = useState<SortKey>('wins')
+export function StatsDisplay({ stats, finishedCount, scoringConfig }: Props) {
+  // Ranking table
+  const [rankMode, setRankMode] = useState<RankMode>('auto')
   const [rankDir, setRankDir] = useState<SortDir>('desc')
   const [rankPage, setRankPage] = useState(1)
 
   // Stats table sort
-  const [statsKey, setStatsKey] = useState<SortKey>('wins')
+  const [statsKey, setStatsKey] = useState<ColKey>('wins')
   const [statsDir, setStatsDir] = useState<SortDir>('desc')
   const [statsPage, setStatsPage] = useState(1)
 
-  function handleRankSort(key: SortKey) {
-    if (key === rankKey) setRankDir((d) => (d === 'asc' ? 'desc' : 'asc'))
-    else { setRankKey(key); setRankDir('desc') }
+  function handleRankSort(key: ColKey) {
+    if (key === rankMode) setRankDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+    else { setRankMode(key); setRankDir('desc') }
     setRankPage(1)
   }
 
-  function handleStatsSort(key: SortKey) {
+  function resetRankSort() {
+    setRankMode('auto')
+    setRankDir('desc')
+    setRankPage(1)
+  }
+
+  function handleStatsSort(key: ColKey) {
     if (key === statsKey) setStatsDir((d) => (d === 'asc' ? 'desc' : 'asc'))
     else { setStatsKey(key); setStatsDir('desc') }
     setStatsPage(1)
   }
 
-  const rankSorted = useMemo(() => sortStats(stats, rankKey, rankDir), [stats, rankKey, rankDir])
+  const composites = useMemo(
+    () => computeComposites(stats, scoringConfig),
+    [stats, scoringConfig],
+  )
+
+  const rankSorted = useMemo(() => {
+    if (rankMode === 'auto') return rankByConfig(stats, scoringConfig)
+    return sortStats(stats, rankMode, rankDir)
+  }, [stats, rankMode, rankDir, scoringConfig])
+
   const statsSorted = useMemo(() => sortStats(stats, statsKey, statsDir), [stats, statsKey, statsDir])
 
   const totalRankPages = Math.ceil(stats.length / PAGE_SIZE)
@@ -131,21 +149,43 @@ export function StatsDisplay({ stats, finishedCount }: Props) {
   const rankSlice = rankSorted.slice((rankPage - 1) * PAGE_SIZE, rankPage * PAGE_SIZE)
   const statsSlice = statsSorted.slice((statsPage - 1) * PAGE_SIZE, statsPage * PAGE_SIZE)
 
-  const rankThProps = { currentKey: rankKey, currentDir: rankDir, onSort: handleRankSort }
-  const statsThProps = { currentKey: statsKey, currentDir: statsDir, onSort: handleStatsSort }
+  const statsThProps = { currentKey: statsKey as RankMode, currentDir: statsDir, onSort: handleStatsSort }
+
+  const showRankExtra = scoringConfig.method !== 'C'
+  const rankExtraLabel = scoringConfig.method === 'B' ? 'Pts F1' : 'Score'
+  const methodIsAuto = rankMode === 'auto'
+
+  function getRankExtraValue(s: PlayerStat): string {
+    if (scoringConfig.method === 'B') return String(s.f1Points)
+    if (scoringConfig.method === 'A') return `${composites.get(s.name) ?? 0} / 100`
+    return ''
+  }
 
   return (
     <div className="space-y-8">
 
       {/* ── Classement général ── */}
       <div>
-        <h2 className="text-base font-semibold mb-3 flex items-center gap-2">
-          <Trophy size={16} className="text-yellow-500" />
-          Classement général
-          <span className="text-xs font-normal text-muted-foreground ml-1">
-            {stats.length} joueur{stats.length !== 1 ? 's' : ''}
-          </span>
-        </h2>
+        <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
+          <h2 className="text-base font-semibold flex items-center gap-2">
+            <Trophy size={16} className="text-yellow-500" />
+            Classement général
+            <span className="text-xs font-normal text-muted-foreground ml-1">
+              {stats.length} joueur{stats.length !== 1 ? 's' : ''}
+            </span>
+          </h2>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+            <span className="flex items-center gap-1">
+              <Settings2 size={11} />
+              Méthode&nbsp;: <strong className="text-foreground">{METHOD_META[scoringConfig.method].label}</strong>
+            </span>
+            {!methodIsAuto && (
+              <button onClick={resetRankSort} className="text-primary hover:underline">
+                ← Réinitialiser
+              </button>
+            )}
+          </div>
+        </div>
 
         <div className="rounded-xl border overflow-hidden">
           {/* Desktop */}
@@ -154,22 +194,25 @@ export function StatsDisplay({ stats, finishedCount }: Props) {
               <thead className="bg-muted/50 border-b text-muted-foreground">
                 <tr>
                   <th className="text-left px-4 py-3 font-medium w-10">#</th>
-                  <Th label="Joueur"        sortKey="name"          {...rankThProps} />
-                  <Th label="Victoires"     sortKey="wins"          {...rankThProps} right />
-                  <Th label="Taux victoire" sortKey="winRate"       {...rankThProps} right />
-                  <Th label="Parties"       sortKey="gamesPlayed"   {...rankThProps} right />
-                  <Th label="Score moy."    sortKey="avgFinalScore" {...rankThProps} right />
-                  <Th label="Record"        sortKey="bestScore"     {...rankThProps} right />
+                  <Th label="Joueur"        sortKey="name"          currentKey={rankMode} currentDir={rankDir} onSort={handleRankSort} />
+                  <Th label="Victoires"     sortKey="wins"          currentKey={rankMode} currentDir={rankDir} onSort={handleRankSort} right />
+                  <Th label="Taux victoire" sortKey="winRate"       currentKey={rankMode} currentDir={rankDir} onSort={handleRankSort} right />
+                  <Th label="Parties"       sortKey="gamesPlayed"   currentKey={rankMode} currentDir={rankDir} onSort={handleRankSort} right />
+                  <Th label="Score moy."    sortKey="avgFinalScore" currentKey={rankMode} currentDir={rankDir} onSort={handleRankSort} right />
+                  <Th label="Record"        sortKey="bestScore"     currentKey={rankMode} currentDir={rankDir} onSort={handleRankSort} right />
+                  {showRankExtra && (
+                    <Th label={rankExtraLabel} sortKey={scoringConfig.method === 'B' ? 'f1Points' : 'winRate' /* composite non-sortable */} currentKey={rankMode} currentDir={rankDir} onSort={scoringConfig.method === 'B' ? handleRankSort : () => {}} right />
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y">
                 {rankSlice.map((s, i) => {
                   const globalRank = (rankPage - 1) * PAGE_SIZE + i
-                  const isFirst = rankKey === 'wins' && rankDir === 'desc' && globalRank === 0
+                  const isTop = methodIsAuto && globalRank === 0
                   return (
-                    <tr key={s.name} className={`hover:bg-muted/30 transition-colors ${isFirst ? 'bg-yellow-50/40 dark:bg-yellow-950/10' : ''}`}>
+                    <tr key={s.name} className={`hover:bg-muted/30 transition-colors ${isTop ? 'bg-yellow-50/40 dark:bg-yellow-950/10' : ''}`}>
                       <td className="px-4 py-3 text-muted-foreground font-mono text-center">
-                        {rankKey === 'wins' && rankDir === 'desc' ? (medal(globalRank) ?? `${globalRank + 1}.`) : `${globalRank + 1}.`}
+                        {methodIsAuto ? (medal(globalRank) ?? `${globalRank + 1}.`) : `${globalRank + 1}.`}
                       </td>
                       <td className="px-4 py-3 font-medium">{s.name}</td>
                       <td className="px-4 py-3 text-right font-bold">{s.wins}</td>
@@ -177,6 +220,11 @@ export function StatsDisplay({ stats, finishedCount }: Props) {
                       <td className="px-4 py-3 text-right text-muted-foreground">{s.gamesPlayed}</td>
                       <td className="px-4 py-3 text-right font-mono text-muted-foreground">{s.avgFinalScore}</td>
                       <td className="px-4 py-3 text-right font-mono font-medium">{s.bestScore}</td>
+                      {showRankExtra && (
+                        <td className="px-4 py-3 text-right font-mono font-medium text-primary">
+                          {getRankExtraValue(s)}
+                        </td>
+                      )}
                     </tr>
                   )
                 })}
@@ -184,7 +232,7 @@ export function StatsDisplay({ stats, finishedCount }: Props) {
             </table>
           </div>
 
-          {/* Mobile — tri par boutons compacts */}
+          {/* Mobile */}
           <div className="sm:hidden">
             <div className="flex gap-1.5 flex-wrap px-3 pt-3 pb-2 border-b">
               {([
@@ -193,21 +241,30 @@ export function StatsDisplay({ stats, finishedCount }: Props) {
                 ['gamesPlayed', 'Parties'],
                 ['avgFinalScore', 'Moy.'],
                 ['bestScore', 'Record'],
+                ...(scoringConfig.method === 'B' ? [['f1Points', 'F1']] : []),
                 ['name', 'Nom'],
-              ] as [SortKey, string][]).map(([key, label]) => (
+              ] as [ColKey, string][]).map(([key, label]) => (
                 <button
                   key={key}
                   onClick={() => handleRankSort(key)}
                   className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium border transition-colors ${
-                    rankKey === key
+                    rankMode === key
                       ? 'bg-primary text-primary-foreground border-primary'
                       : 'bg-muted/50 text-muted-foreground border-border hover:bg-muted'
                   }`}
                 >
                   {label}
-                  {rankKey === key && (rankDir === 'asc' ? <ChevronUp size={10} /> : <ChevronDown size={10} />)}
+                  {rankMode === key && (rankDir === 'asc' ? <ChevronUp size={10} /> : <ChevronDown size={10} />)}
                 </button>
               ))}
+              {!methodIsAuto && (
+                <button
+                  onClick={resetRankSort}
+                  className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium border border-primary text-primary transition-colors hover:bg-primary/10"
+                >
+                  ↺ Auto
+                </button>
+              )}
             </div>
             <div className="divide-y">
               {rankSlice.map((s, i) => {
@@ -215,12 +272,17 @@ export function StatsDisplay({ stats, finishedCount }: Props) {
                 return (
                   <div key={s.name} className="flex items-center gap-3 px-4 py-3">
                     <span className="w-7 text-center text-sm font-mono shrink-0">
-                      {rankKey === 'wins' && rankDir === 'desc' ? (medal(globalRank) ?? `${globalRank + 1}.`) : `${globalRank + 1}.`}
+                      {methodIsAuto ? (medal(globalRank) ?? `${globalRank + 1}.`) : `${globalRank + 1}.`}
                     </span>
                     <span className="flex-1 font-medium text-sm truncate">{s.name}</span>
                     <div className="text-right shrink-0">
-                      <p className="font-bold text-sm">{s.wins} <span className="font-normal text-muted-foreground text-xs">V</span></p>
-                      <p className="text-xs text-muted-foreground">{s.gamesPlayed} partie{s.gamesPlayed !== 1 ? 's' : ''} · {pct(s.winRate)}</p>
+                      <p className="font-bold text-sm">
+                        {s.wins} <span className="font-normal text-muted-foreground text-xs">V</span>
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {s.gamesPlayed} partie{s.gamesPlayed !== 1 ? 's' : ''} · {pct(s.winRate)}
+                        {showRankExtra && ` · ${getRankExtraValue(s)}`}
+                      </p>
                     </div>
                   </div>
                 )
@@ -254,7 +316,7 @@ export function StatsDisplay({ stats, finishedCount }: Props) {
               ['avgFinalScore', 'Moy.'],
               ['bestScore', 'Record'],
               ['name', 'Nom'],
-            ] as [SortKey, string][]).map(([key, label]) => (
+            ] as [ColKey, string][]).map(([key, label]) => (
               <button
                 key={key}
                 onClick={() => handleStatsSort(key)}

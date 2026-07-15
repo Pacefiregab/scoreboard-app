@@ -82,3 +82,9 @@ enum RoundStatus {
   PLAYING
   DONE
 }
+
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
