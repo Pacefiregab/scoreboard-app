@@ -1,5 +1,5 @@
 import type { GameState } from '@/types/game'
-import { competitionRanks } from '@/lib/ranking'
+import { getStandings } from '@/lib/ranking'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 
@@ -8,8 +8,7 @@ interface Props {
 }
 
 export function Scoreboard({ game }: Props) {
-  const sorted = [...game.players].sort((a, b) => b.totalScore - a.totalScore)
-  const ranks = competitionRanks(sorted, (p) => p.totalScore)
+  const standings = getStandings(game)
   const currentRound = game.rounds.at(-1)
 
   return (
@@ -31,10 +30,9 @@ export function Scoreboard({ game }: Props) {
       </CardHeader>
       <CardContent>
         <div className="space-y-1">
-          {sorted.map((player, index) => {
+          {standings.map(({ player, rank, contractRate, contractsWon, roundsPlayed, scoreTied }) => {
             const roundScore = currentRound?.scores.find((s) => s.playerId === player.id)
             const bet = currentRound?.bets.find((b) => b.playerId === player.id)
-            const rank = ranks[index]!
             const isLeader = rank === 1
 
             return (
@@ -44,6 +42,16 @@ export function Scoreboard({ game }: Props) {
               >
                 <span className="w-5 text-sm text-muted-foreground font-mono">{rank}.</span>
                 <span className="flex-1 font-medium text-sm">{player.name}</span>
+
+                {/* Shown only when the rate is what separated equal scores */}
+                {scoreTied && roundsPlayed > 0 && (
+                  <span
+                    className="text-[10px] text-amber-600 dark:text-amber-400 font-medium shrink-0"
+                    title={`${contractsWon}/${roundsPlayed} contrats réussis — départage à égalité de score`}
+                  >
+                    {Math.round(contractRate * 100)} %
+                  </span>
+                )}
 
                 {bet && (
                   <span className="text-xs text-muted-foreground">

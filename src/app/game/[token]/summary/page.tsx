@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getGame } from '@/lib/game-service'
-import { competitionRanks } from '@/lib/ranking'
+import { getStandings } from '@/lib/ranking'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -17,26 +17,33 @@ export default async function SummaryPage({ params }: { params: Promise<{ token:
     notFound()
   }
 
-  const sorted = [...game.players].sort((a, b) => b.totalScore - a.totalScore)
-  const ranks = competitionRanks(sorted, (p) => p.totalScore)
-  const winners = sorted.filter((_, i) => ranks[i] === 1)
+  const standings = getStandings(game)
+  const winners = standings.filter((s) => s.rank === 1)
 
   return (
     <main className="min-h-screen p-4 max-w-lg mx-auto space-y-4 pb-8">
-      <WinnerEffect names={winners.map((w) => w.name)} />
+      <WinnerEffect names={winners.map((w) => w.player.name)} />
 
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-base">Classement final</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          {sorted.map((player, index) => {
-            const rank = ranks[index]!
+          {standings.map(({ player, rank, contractRate, contractsWon, roundsPlayed, scoreTied }) => {
             const isWinner = rank === 1
             return (
               <div key={player.id} className={`flex items-center gap-3 rounded-lg px-3 py-2 ${isWinner ? 'bg-primary/10' : ''}`}>
                 <span className="w-5 text-sm text-muted-foreground">{rank}.</span>
                 <span className="flex-1 font-medium">{player.name}</span>
+                {/* Shown only when the rate is what separated equal scores */}
+                {scoreTied && roundsPlayed > 0 && (
+                  <span
+                    className="text-xs text-amber-600 dark:text-amber-400 font-medium"
+                    title={`${contractsWon}/${roundsPlayed} contrats réussis — départage à égalité de score`}
+                  >
+                    {Math.round(contractRate * 100)} %
+                  </span>
+                )}
                 {isWinner && <Badge>{winners.length > 1 ? 'Ex æquo' : 'Vainqueur'}</Badge>}
                 <span className="font-bold font-mono">{player.totalScore}</span>
               </div>

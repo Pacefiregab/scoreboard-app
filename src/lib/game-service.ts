@@ -517,24 +517,39 @@ export async function getPlayerStats(options?: { finishedSince?: Date }): Promis
       finalScores.set(player.id, last ? last.totalPoints : player.initialScore)
     }
 
-    const maxScore = Math.max(...finalScores.values())
-    const winnerIds = new Set(
-      [...finalScores.entries()].filter(([, s]) => s === maxScore).map(([id]) => id),
+    // Contract success rate within this game — breaks ties on equal scores,
+    // mirroring getStandings() on the scoreboard and summary pages.
+    const contractRates = new Map<string, number>()
+    for (const player of game.players) {
+      const bets = game.rounds
+        .flatMap((r) => r.bets)
+        .filter((b) => b.playerId === player.id && b.actual !== null)
+      const met = bets.filter((b) => b.actual === b.announced).length
+      contractRates.set(player.id, bets.length > 0 ? met / bets.length : 0)
+    }
+
+    const rankKey = (id: string) => `${finalScores.get(id) ?? 0}|${contractRates.get(id) ?? 0}`
+    const sortedForRank = [...game.players].sort(
+      (a, b) =>
+        (finalScores.get(b.id) ?? 0) - (finalScores.get(a.id) ?? 0) ||
+        (contractRates.get(b.id) ?? 0) - (contractRates.get(a.id) ?? 0),
     )
 
-    // F1 points: rank players by final score, assign 10/6/3/1 (ties share the same rank)
-    const sortedForF1 = [...game.players].sort(
-      (a, b) => (finalScores.get(b.id) ?? 0) - (finalScores.get(a.id) ?? 0),
+    const topKey = sortedForRank[0] ? rankKey(sortedForRank[0].id) : ''
+    const winnerIds = new Set(
+      sortedForRank.filter((p) => rankKey(p.id) === topKey).map((p) => p.id),
     )
+
+    // F1 points: 10/6/3/1 by rank; players level on score *and* rate share a rank
     const gameF1 = new Map<string, number>()
     let f1Rank = 0
-    let prevF1Score: number | null = null
-    for (let i = 0; i < sortedForF1.length; i++) {
-      const p = sortedForF1[i]!
-      const sc = finalScores.get(p.id) ?? 0
-      if (sc !== prevF1Score) f1Rank = i
+    let prevKey: string | null = null
+    for (let i = 0; i < sortedForRank.length; i++) {
+      const p = sortedForRank[i]!
+      const key = rankKey(p.id)
+      if (key !== prevKey) f1Rank = i
       gameF1.set(p.id, F1[f1Rank] ?? 0)
-      prevF1Score = sc
+      prevKey = key
     }
 
     for (const player of game.players) {
