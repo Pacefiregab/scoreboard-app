@@ -30,7 +30,8 @@ PWA web de suivi de scores pour parties de cartes. Un hôte crée et gère la pa
 - [x] Nombre de cartes non plafonné
 - [x] Saisie des paris avec contrainte du dernier joueur (valeur interdite en temps réel)
 - [x] Rotation de la contrainte : M1→dernier joueur, M2→1er, M3→2e…
-- [x] Forçage manuel du joueur contraint pour une manche (cadenas, réversible)
+- [x] Forçage manuel du joueur contraint (cadenas, réversible) — la rotation
+      reprend ensuite depuis le joueur forcé
 - [x] Calcul automatique : `10 + 10×plis` si contrat rempli, `-10×|écart|` sinon
 - [x] Saisie des plis avec validation de la somme (somme = nb de cartes)
 - [x] Steppers +/− pour la saisie mobile (touch targets 48×48px)
@@ -158,4 +159,4 @@ PWA web de suivi de scores pour parties de cartes. Un hôte crée et gère la pa
 | Q11 | Thèmes | 3 thèmes : clair, sombre, rose — toggle dans le header |
 | Q12 | Désactivation joueur | Exclut des manches suivantes, score conservé, réactivable |
 | Q13 | Stats | Basées sur le nom du joueur, agrégées sur toutes les parties terminées |
-| Q14 | Joueur contraint | Rotation automatique par défaut, forçable manuellement par manche (cadenas) |
+| Q14 | Joueur contraint | Rotation automatique ; un forçage manuel décale la rotation pour toutes les manches suivantes |

@@ -139,7 +139,7 @@ export function BettingPhase({ game, round, onSubmit, onConstraintChange }: Prop
             className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
             <RotateCcw size={12} />
-            Contrainte forcée sur {constrainedPlayer.name} — revenir à l&apos;automatique
+            Contrainte décalée sur {constrainedPlayer.name} — revenir à la rotation par défaut
           </button>
         )}
 

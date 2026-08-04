@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import type { GameState } from '@/types/game'
-import { getNextRoundNumber, resolveConstrainedPlayerId } from '@/lib/constrained-player'
+import { getNextRoundNumber, getUpcomingConstrainedPlayerId } from '@/lib/constrained-player'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -36,13 +36,8 @@ export function AddPlayerDialog({ game, open, onOpenChange, onAdded }: Props) {
     { id: NEW_ID, name: name.trim() || 'Nouveau joueur', active: true },
     ...sortedPlayers.slice(insertAt),
   ]
-  const currentRound = game.rounds.at(-1)
-  const override = currentRound?.status === 'BETTING' ? currentRound.constrainedPlayerId : null
-  const constrainedId = resolveConstrainedPlayerId(
-    simulatedList.filter((p) => p.active),
-    nextRoundNumber,
-    override,
-  )
+  const constrainedId = getUpcomingConstrainedPlayerId(game, simulatedList.filter((p) => p.active))
+  const isManual = Boolean(game.rounds.at(-1)?.constrainedPlayerId)
 
   async function handleAdd() {
     if (!name.trim()) return
@@ -139,8 +134,8 @@ export function AddPlayerDialog({ game, open, onOpenChange, onAdded }: Props) {
               })}
             </div>
             <p className="text-[11px] text-muted-foreground pt-0.5">
-              {override
-                ? 'Contrainte forcée manuellement pour cette manche.'
+              {isManual
+                ? 'La rotation suit un déplacement manuel de la contrainte.'
                 : 'Modifiable après ajout depuis l’écran des paris.'}
             </p>
           </div>

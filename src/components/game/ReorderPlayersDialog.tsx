@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import type { GameState, PlayerState } from '@/types/game'
-import { getNextRoundNumber, resolveConstrainedPlayerId } from '@/lib/constrained-player'
+import { getNextRoundNumber, getUpcomingConstrainedPlayerId } from '@/lib/constrained-player'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { ChevronUp, ChevronDown, EyeOff, Eye } from 'lucide-react'
@@ -31,14 +31,8 @@ export function ReorderPlayersDialog({ game, open, onClose, onDone }: Props) {
   }, [open, game.players])
 
   const nextRoundNumber = getNextRoundNumber(game)
-  const currentRound = game.rounds.at(-1)
-  const override = currentRound?.status === 'BETTING' ? currentRound.constrainedPlayerId : null
-  const constrainedPlayerId = resolveConstrainedPlayerId(
-    players.filter((p) => p.active),
-    nextRoundNumber,
-    override,
-  )
-  const isManual = Boolean(override && players.some((p) => p.id === override && p.active))
+  const constrainedPlayerId = getUpcomingConstrainedPlayerId(game, players.filter((p) => p.active))
+  const isManual = Boolean(game.rounds.at(-1)?.constrainedPlayerId)
 
   function moveUp(index: number) {
     if (index === 0) return

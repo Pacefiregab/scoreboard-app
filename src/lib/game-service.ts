@@ -1,7 +1,7 @@
 import { Prisma } from '@prisma/client'
 import { prisma } from './prisma'
 import { computeRoundScores, isLastBetValid, isGameOver, nextCardCount } from './enculette'
-import { resolveConstrainedPlayerId } from './constrained-player'
+import { resolveConstrainedPlayerId, nextConstrainedPlayerId } from './constrained-player'
 import { ApiError } from './api-helpers'
 import type { GameState, RoundState } from '@/types/game'
 import { DEFAULT_CONFIG, type ScoringConfig } from './scoring'
@@ -189,11 +189,26 @@ export async function startNextRound(adminToken: string): Promise<RoundState> {
     throw new ApiError('Game is already over — call /finish to end it', 409)
   }
 
+  // Once a round carries an explicit constraint, the rotation resumes from that
+  // seat instead of the position it would have reached on its own — so the
+  // manual move shifts every following round rather than being undone by one.
+  let constrainedPlayerId: string | null = null
+  if (lastRound?.constrainedPlayerId) {
+    const activePlayers = game.players.filter((p) => p.active).sort((a, b) => a.order - b.order)
+    const previous = resolveConstrainedPlayerId(
+      activePlayers,
+      lastRound.number,
+      lastRound.constrainedPlayerId,
+    )
+    constrainedPlayerId = nextConstrainedPlayerId(activePlayers, previous) ?? null
+  }
+
   const round = await prisma.round.create({
     data: {
       gameId: game.id,
       number: lastRound ? lastRound.number + 1 : 1,
       cardCount,
+      constrainedPlayerId,
     },
   })
 
