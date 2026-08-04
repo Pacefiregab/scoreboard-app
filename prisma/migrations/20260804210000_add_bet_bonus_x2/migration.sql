@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Bet" ADD COLUMN     "bonusX2" BOOLEAN NOT NULL DEFAULT false;

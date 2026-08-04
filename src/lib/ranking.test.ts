@@ -81,7 +81,9 @@ function makeGame(
       id: `r${r}`, number: r + 1, cardCount: 1, status: 'DONE' as const, constrainedPlayerId: null,
       bets: players
         .filter((p) => p.bets[r])
-        .map((p) => ({ playerId: p.id, announced: p.bets[r]![0], actual: p.bets[r]![1] })),
+        .map((p) => ({
+          playerId: p.id, announced: p.bets[r]![0], actual: p.bets[r]![1], bonusX2: false,
+        })),
       scores: [],
     })),
   }

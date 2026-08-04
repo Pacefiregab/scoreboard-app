@@ -47,6 +47,7 @@ function buildGameState(game: GameWithRelations, isAdmin: boolean): GameState {
       playerId: b.playerId,
       announced: b.announced,
       actual: b.actual,
+      bonusX2: b.bonusX2,
     })),
     scores: r.scores.map((s) => ({
       playerId: s.playerId,
@@ -234,10 +235,17 @@ export async function startNextRound(adminToken: string): Promise<RoundState> {
   }
 }
 
+/** Players who have already spent their ×2 bonus in this game. */
+function playersWithSpentBonus(game: GameWithRelations): Set<string> {
+  return new Set(
+    game.rounds.flatMap((r) => r.bets).filter((b) => b.bonusX2).map((b) => b.playerId),
+  )
+}
+
 export async function submitBets(
   adminToken: string,
   roundId: string,
-  bets: { playerId: string; announced: number }[],
+  bets: { playerId: string; announced: number; bonusX2?: boolean }[],
 ): Promise<void> {
   const game = await findActiveGameByAdminToken(adminToken)
   const round = game.rounds.find((r) => r.id === roundId)
@@ -275,8 +283,30 @@ export async function submitBets(
     )
   }
 
+  // ×2 bonus: opt-in rule, one use per player for the whole game. Resetting the
+  // bets of a round deletes them, which correctly frees the bonus again.
+  const armed = bets.filter((b) => b.bonusX2)
+  if (armed.length > 0) {
+    if (!game.ruleBonusX2) {
+      throw new ApiError('Le bonus ×2 n’est pas activé sur cette partie', 422)
+    }
+    const spent = playersWithSpentBonus(game)
+    const reused = armed.find((b) => spent.has(b.playerId))
+    if (reused) {
+      const name = game.players.find((p) => p.id === reused.playerId)?.name ?? 'Ce joueur'
+      throw new ApiError(`${name} a déjà utilisé son bonus ×2`, 422)
+    }
+  }
+
   await prisma.$transaction([
-    prisma.bet.createMany({ data: bets.map((b) => ({ roundId, playerId: b.playerId, announced: b.announced })) }),
+    prisma.bet.createMany({
+      data: bets.map((b) => ({
+        roundId,
+        playerId: b.playerId,
+        announced: b.announced,
+        bonusX2: b.bonusX2 === true,
+      })),
+    }),
     prisma.round.update({ where: { id: roundId }, data: { status: 'PLAYING' } }),
   ])
 }
@@ -315,7 +345,12 @@ export async function submitResults(
   const betsWithActual = round.bets.map((bet) => {
     const result = results.find((r) => r.playerId === bet.playerId)
     if (!result) throw new ApiError(`Missing result for player ${bet.playerId}`, 400)
-    return { playerId: bet.playerId, announced: bet.announced, actual: result.actual }
+    return {
+      playerId: bet.playerId,
+      announced: bet.announced,
+      actual: result.actual,
+      bonusX2: bet.bonusX2,
+    }
   })
 
   const scored = computeRoundScores(betsWithActual)

@@ -24,7 +24,13 @@ export async function POST(req: Request, { params }: { params: Params }) {
       )
     }
 
-    await submitBets(token, roundId, body.bets as { playerId: string; announced: number }[])
+    const bets = (body.bets as Record<string, unknown>[]).map((b) => ({
+      playerId: b.playerId as string,
+      announced: b.announced as number,
+      bonusX2: b.bonusX2 === true,
+    }))
+
+    await submitBets(token, roundId, bets)
     return ok({ ok: true })
   } catch (e) {
     return handleError(e)

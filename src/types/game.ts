@@ -15,6 +15,8 @@ export interface BetState {
   playerId: string
   announced: number
   actual: number | null
+  /** Armed at bet time; doubles this round's points. Once per player per game. */
+  bonusX2: boolean
 }
 
 export interface RoundScoreState {

@@ -36,6 +36,42 @@ describe('computeRoundScores', () => {
     expect(result[0].points).toBe(20)
     expect(result[1].points).toBe(-20)
   })
+
+  it('doubles a winning round when the ×2 bonus is armed', () => {
+    const result = computeRoundScores([
+      { playerId: 'p1', announced: 2, actual: 2, bonusX2: true },
+    ])
+    expect(result[0].points).toBe(60) // (10 + 10*2) * 2
+  })
+
+  it('doubles a losing round too — arming the bonus is a gamble', () => {
+    const result = computeRoundScores([
+      { playerId: 'p1', announced: 3, actual: 1, bonusX2: true },
+    ])
+    expect(result[0].points).toBe(-40) // (-10 * 2) * 2
+  })
+
+  it('doubles a met zero contract', () => {
+    const result = computeRoundScores([
+      { playerId: 'p1', announced: 0, actual: 0, bonusX2: true },
+    ])
+    expect(result[0].points).toBe(20) // 10 * 2
+  })
+
+  it('leaves other players untouched', () => {
+    const result = computeRoundScores([
+      { playerId: 'p1', announced: 1, actual: 1, bonusX2: true },
+      { playerId: 'p2', announced: 1, actual: 1 },
+    ])
+    expect(result[0].points).toBe(40)
+    expect(result[1].points).toBe(20)
+  })
+
+  it('treats an absent flag like false', () => {
+    const withFlag = computeRoundScores([{ playerId: 'p1', announced: 1, actual: 1, bonusX2: false }])
+    const without = computeRoundScores([{ playerId: 'p1', announced: 1, actual: 1 }])
+    expect(withFlag[0].points).toBe(without[0].points)
+  })
 })
 
 describe('isLastBetValid', () => {

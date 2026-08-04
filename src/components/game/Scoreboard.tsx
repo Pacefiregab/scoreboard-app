@@ -72,6 +72,15 @@ export function Scoreboard({ game }: Props) {
                   </span>
                 )}
 
+                {bet?.bonusX2 && (
+                  <span
+                    className="text-[10px] font-bold text-violet-600 dark:text-violet-400 shrink-0"
+                    title="Bonus ×2 armé sur cette manche"
+                  >
+                    ×2
+                  </span>
+                )}
+
                 {bet && (
                   <span className="text-xs text-muted-foreground">
                     parie {bet.announced}

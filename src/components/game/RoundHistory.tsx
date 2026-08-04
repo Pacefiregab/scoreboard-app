@@ -70,6 +70,14 @@ export function RoundHistory({ game }: Props) {
                             >
                               {score && score.points >= 0 ? '+' : ''}{score?.points ?? '—'}
                             </span>
+                            {bet?.bonusX2 && (
+                              <span
+                                className="text-[10px] font-bold text-violet-600 dark:text-violet-400"
+                                title="Bonus ×2 utilisé sur cette manche"
+                              >
+                                ×2
+                              </span>
+                            )}
                           </div>
                           <div className="text-muted-foreground font-mono">
                             {before} → {after}

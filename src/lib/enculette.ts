@@ -2,6 +2,8 @@ export type Bet = {
   playerId: string
   announced: number
   actual?: number
+  /** Doubles this round's points — the loss as well as the gain. */
+  bonusX2?: boolean
 }
 
 export type ScoredBet = Bet & {
@@ -11,12 +13,13 @@ export type ScoredBet = Bet & {
 
 export function computeRoundScores(bets: (Bet & { actual: number })[]): ScoredBet[] {
   return bets.map((bet) => {
-    const points =
+    const base =
       bet.actual === bet.announced
         ? 10 + 10 * bet.actual
         : -10 * Math.abs(bet.actual - bet.announced)
 
-    return { ...bet, points }
+    // Deliberately applied to negative rounds too: arming the bonus is a bet.
+    return { ...bet, points: bet.bonusX2 ? base * 2 : base }
   })
 }
 

@@ -58,6 +58,8 @@ model Bet {
   player     Player  @relation(fields: [playerId], references: [id], onDelete: Cascade)
   announced  Int
   actual     Int?
+  /// Armed with the bet; doubles this round's points. Once per player per game.
+  bonusX2    Boolean @default(false)
 
   @@unique([roundId, playerId])
 }
