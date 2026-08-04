@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import type { GameState, PlayerState } from '@/types/game'
-import { getNextRoundNumber, getConstrainedIndex } from '@/lib/constrained-player'
+import { getNextRoundNumber, resolveConstrainedPlayerId } from '@/lib/constrained-player'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { ChevronUp, ChevronDown, EyeOff, Eye } from 'lucide-react'
@@ -20,16 +20,25 @@ export function ReorderPlayersDialog({ game, open, onClose, onDone }: Props) {
   )
   const [loading, setLoading] = useState(false)
 
+  // Resync only when the dialog opens. `game.players` is a fresh array on every
+  // poll (4s), so depending on it here would wipe the pending reorder mid-edit.
+  const wasOpen = useRef(false)
   useEffect(() => {
-    if (open) {
+    if (open && !wasOpen.current) {
       setPlayers([...game.players].sort((a, b) => a.order - b.order))
     }
+    wasOpen.current = open
   }, [open, game.players])
 
   const nextRoundNumber = getNextRoundNumber(game)
-  const activePlayers = players.filter((p) => p.active)
-  const constrainedIndex = getConstrainedIndex(nextRoundNumber, activePlayers.length)
-  const constrainedPlayerId = activePlayers[constrainedIndex]?.id
+  const currentRound = game.rounds.at(-1)
+  const override = currentRound?.status === 'BETTING' ? currentRound.constrainedPlayerId : null
+  const constrainedPlayerId = resolveConstrainedPlayerId(
+    players.filter((p) => p.active),
+    nextRoundNumber,
+    override,
+  )
+  const isManual = Boolean(override && players.some((p) => p.id === override && p.active))
 
   function moveUp(index: number) {
     if (index === 0) return
@@ -98,7 +107,7 @@ export function ReorderPlayersDialog({ game, open, onClose, onDone }: Props) {
                 </span>
                 {isConstrained && (
                   <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
-                    contraint M{nextRoundNumber}
+                    contraint M{nextRoundNumber}{isManual ? ' (forcé)' : ''}
                   </span>
                 )}
                 <button

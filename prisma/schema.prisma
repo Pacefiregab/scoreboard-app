@@ -39,6 +39,8 @@ model Round {
   cardCount   Int
   status      RoundStatus @default(BETTING)
   createdAt   DateTime    @default(now())
+  // Manual override of the constrained player; null = automatic rotation
+  constrainedPlayerId String?
   bets        Bet[]
   scores      RoundScore[]
 }

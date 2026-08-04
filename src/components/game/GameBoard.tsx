@@ -79,7 +79,7 @@ export function GameBoard() {
   const activePhase = isAdmin && game.status === 'ACTIVE' && (
     <>
       {currentRound?.status === 'BETTING' && (
-        <BettingPhase game={game} round={currentRound} onSubmit={submitBets} />
+        <BettingPhase game={game} round={currentRound} onSubmit={submitBets} onConstraintChange={refresh} />
       )}
       {currentRound?.status === 'PLAYING' && (
         <PlayingPhase game={game} round={currentRound} onSubmit={submitResults} onBack={resetBets} />

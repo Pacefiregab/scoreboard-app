@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client'
 import { prisma } from './prisma'
 import { computeRoundScores, isLastBetValid, isGameOver, nextCardCount } from './enculette'
+import { resolveConstrainedPlayerId } from './constrained-player'
 import { ApiError } from './api-helpers'
 import type { GameState, RoundState } from '@/types/game'
 import { DEFAULT_CONFIG, type ScoringConfig } from './scoring'
@@ -41,6 +42,7 @@ function buildGameState(game: GameWithRelations, isAdmin: boolean): GameState {
     number: r.number,
     cardCount: r.cardCount,
     status: r.status,
+    constrainedPlayerId: r.constrainedPlayerId,
     bets: r.bets.map((b) => ({
       playerId: b.playerId,
       announced: b.announced,
@@ -200,6 +202,7 @@ export async function startNextRound(adminToken: string): Promise<RoundState> {
     number: round.number,
     cardCount: round.cardCount,
     status: round.status,
+    constrainedPlayerId: round.constrainedPlayerId,
     bets: [],
     scores: [],
   }
@@ -227,13 +230,16 @@ export async function submitBets(
 
   // The constrained player rotates each round (display order stays fixed):
   // round 1 → last player, round 2 → first, round 3 → second, etc.
-  // Constrained index = (round.number - 2 + n) % n
+  // An admin-set override on the round wins over that rotation.
   const sortedPlayers = [...activePlayers].sort((a, b) => a.order - b.order)
-  const n = sortedPlayers.length
-  const constrainedPlayer = sortedPlayers[(round.number - 2 + n) % n]!
-  const constrainedBet = bets.find((b) => b.playerId === constrainedPlayer.id)!
+  const constrainedPlayerId = resolveConstrainedPlayerId(
+    sortedPlayers,
+    round.number,
+    round.constrainedPlayerId,
+  )!
+  const constrainedBet = bets.find((b) => b.playerId === constrainedPlayerId)!
   const sumOfOthers = bets
-    .filter((b) => b.playerId !== constrainedPlayer.id)
+    .filter((b) => b.playerId !== constrainedPlayerId)
     .reduce((sum, b) => sum + b.announced, 0)
 
   if (constrainedBet.announced === round.cardCount - sumOfOthers) {
@@ -561,6 +567,26 @@ export async function updateRoundCardCount(
   if (!round) throw new ApiError('Round not found', 404)
   if (round.status !== 'BETTING') throw new ApiError('Can only change card count during betting phase', 409)
   await prisma.round.update({ where: { id: roundId }, data: { cardCount } })
+}
+
+/** Sets (or clears, with null) the manual constrained-player override. */
+export async function updateRoundConstrainedPlayer(
+  adminToken: string,
+  roundId: string,
+  playerId: string | null,
+): Promise<void> {
+  const game = await findActiveGameByAdminToken(adminToken)
+  const round = game.rounds.find((r) => r.id === roundId)
+  if (!round) throw new ApiError('Round not found', 404)
+  if (round.status !== 'BETTING') {
+    throw new ApiError('Le joueur contraint ne peut être changé que pendant les paris', 409)
+  }
+  if (playerId !== null) {
+    const player = game.players.find((p) => p.id === playerId)
+    if (!player) throw new ApiError('Player not found', 404)
+    if (!player.active) throw new ApiError('Un joueur désactivé ne peut pas être contraint', 422)
+  }
+  await prisma.round.update({ where: { id: roundId }, data: { constrainedPlayerId: playerId } })
 }
 
 export async function updatePlayer(

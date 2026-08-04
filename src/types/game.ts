@@ -28,6 +28,8 @@ export interface RoundState {
   number: number
   cardCount: number
   status: RoundStatus
+  /** Manual override of the constrained player; null = automatic rotation */
+  constrainedPlayerId: string | null
   bets: BetState[]
   scores: RoundScoreState[]
 }
