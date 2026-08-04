@@ -1,5 +1,6 @@
 import type { PlayerStat } from '@/lib/game-service'
 import { rankByConfig, computeComposites, type ScoringConfig } from '@/lib/scoring'
+import { competitionRanks } from '@/lib/ranking'
 import { CalendarDays, Crown, Gamepad2, Star, Target } from 'lucide-react'
 
 interface Props {
@@ -17,10 +18,11 @@ function pct(n: number) {
   return `${Math.round(n * 100)} %`
 }
 
+/** `rank` is 1-based; tied players share a medal and the next one is skipped. */
 function medal(rank: number) {
-  if (rank === 0) return '🥇'
-  if (rank === 1) return '🥈'
-  if (rank === 2) return '🥉'
+  if (rank === 1) return '🥇'
+  if (rank === 2) return '🥈'
+  if (rank === 3) return '🥉'
   return null
 }
 
@@ -69,15 +71,26 @@ export function WeeklyRecap({ stats, gamesCount, scoringConfig, weekStart }: Pro
 
   const ranked = rankByConfig(stats, scoringConfig)
   const composites = computeComposites(stats, scoringConfig)
-  const top = ranked[0]!
+
+  const ranks = competitionRanks(ranked, (s) => {
+    if (scoringConfig.method === 'C') return `${s.wins}|${s.avgFinalScore}|${s.contractRate}`
+    if (scoringConfig.method === 'B') return `${s.f1Points}|${s.wins}`
+    return String(composites.get(s.name) ?? 0)
+  })
+  const leaders = ranked.filter((_, i) => ranks[i] === 1)
+  const top = leaders[0]!
 
   const topDetail =
     scoringConfig.method === 'B' ? `${top.f1Points} pts F1`
     : scoringConfig.method === 'A' ? `${composites.get(top.name) ?? 0} / 100`
     : `${top.wins} victoire${top.wins !== 1 ? 's' : ''}`
 
-  const bestScorer = stats.reduce((best, s) => (s.bestScore > best.bestScore ? s : best))
-  const bestContract = stats.reduce((best, s) => (s.contractRate > best.contractRate ? s : best))
+  const maxScore = Math.max(...stats.map((s) => s.bestScore))
+  const bestScorers = stats.filter((s) => s.bestScore === maxScore)
+  const maxContract = Math.max(...stats.map((s) => s.contractRate))
+  const bestContracts = stats.filter((s) => s.contractRate === maxContract)
+
+  const names = (list: PlayerStat[]) => list.map((s) => s.name).join(', ')
 
   function rankValue(s: PlayerStat): string {
     if (scoringConfig.method === 'B') return `${s.f1Points} pts`
@@ -94,9 +107,9 @@ export function WeeklyRecap({ stats, gamesCount, scoringConfig, weekStart }: Pro
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <HighlightCard
             icon={<Crown size={12} />}
-            label="Joueur de la semaine"
-            value={top.name}
-            detail={topDetail}
+            label={leaders.length > 1 ? 'Joueurs de la semaine' : 'Joueur de la semaine'}
+            value={names(leaders)}
+            detail={leaders.length > 1 ? `${topDetail} — ex æquo` : topDetail}
           />
           <HighlightCard
             icon={<Gamepad2 size={12} />}
@@ -107,14 +120,14 @@ export function WeeklyRecap({ stats, gamesCount, scoringConfig, weekStart }: Pro
           <HighlightCard
             icon={<Star size={12} />}
             label="Meilleur score"
-            value={String(bestScorer.bestScore)}
-            detail={bestScorer.name}
+            value={String(maxScore)}
+            detail={names(bestScorers)}
           />
           <HighlightCard
             icon={<Target size={12} />}
             label="Meilleur taux contrats"
-            value={pct(bestContract.contractRate)}
-            detail={bestContract.name}
+            value={pct(maxContract)}
+            detail={names(bestContracts)}
           />
         </div>
 
@@ -124,7 +137,7 @@ export function WeeklyRecap({ stats, gamesCount, scoringConfig, weekStart }: Pro
             {ranked.slice(0, 5).map((s, i) => (
               <div key={s.name} className="flex items-center gap-3 px-4 py-2.5">
                 <span className="w-7 text-center text-sm font-mono shrink-0">
-                  {medal(i) ?? `${i + 1}.`}
+                  {medal(ranks[i]!) ?? `${ranks[i]}.`}
                 </span>
                 <span className="flex-1 font-medium text-sm truncate">{s.name}</span>
                 <span className="text-xs text-muted-foreground shrink-0">

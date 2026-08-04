@@ -1,4 +1,5 @@
 import type { GameState } from '@/types/game'
+import { competitionRanks } from '@/lib/ranking'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 
@@ -8,6 +9,7 @@ interface Props {
 
 export function Scoreboard({ game }: Props) {
   const sorted = [...game.players].sort((a, b) => b.totalScore - a.totalScore)
+  const ranks = competitionRanks(sorted, (p) => p.totalScore)
   const currentRound = game.rounds.at(-1)
 
   return (
@@ -29,17 +31,18 @@ export function Scoreboard({ game }: Props) {
       </CardHeader>
       <CardContent>
         <div className="space-y-1">
-          {sorted.map((player, rank) => {
+          {sorted.map((player, index) => {
             const roundScore = currentRound?.scores.find((s) => s.playerId === player.id)
             const bet = currentRound?.bets.find((b) => b.playerId === player.id)
-            const isLeader = rank === 0
+            const rank = ranks[index]!
+            const isLeader = rank === 1
 
             return (
               <div
                 key={player.id}
                 className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-opacity ${isLeader && player.active ? 'bg-primary/10' : 'hover:bg-muted/50'} ${!player.active ? 'opacity-40' : ''}`}
               >
-                <span className="w-5 text-sm text-muted-foreground font-mono">{rank + 1}.</span>
+                <span className="w-5 text-sm text-muted-foreground font-mono">{rank}.</span>
                 <span className="flex-1 font-medium text-sm">{player.name}</span>
 
                 {bet && (

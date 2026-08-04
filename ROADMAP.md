@@ -153,7 +153,7 @@ PWA web de suivi de scores pour parties de cartes. Un hôte crée et gère la pa
 | Q3 | Belote | Mis de côté — Phase 5 |
 | Q4 | Rotation contrainte Enculette | L'indicateur tourne (pas les joueurs) : M1→dernier, M2→1er… |
 | Q5 | Nombre de joueurs | Pas de minimum ni maximum |
-| Q6 | Égalité | Ex-æquo accepté, pas de départage |
+| Q6 | Égalité | Ex-æquo accepté, pas de départage ; rang partagé et rang suivant sauté (1, 1, 3, 4) |
 | Q7 | Ajout joueur en cours | L'admin choisit le score de départ et la position |
 | Q8 | Menu admin | Sheet bas d'écran, déclenché depuis le header |
 | Q15 | Gestion des joueurs | Un seul écran (ordre, ajout, activation, contrainte), tout appliqué à l'enregistrement |

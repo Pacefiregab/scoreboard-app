@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import type { PlayerStat } from '@/lib/game-service'
 import { rankByConfig, computeComposites, METHOD_META, type ScoringConfig } from '@/lib/scoring'
+import { competitionRanks } from '@/lib/ranking'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Trophy, TrendingUp, Target, Star, Hash, Gamepad2, ChevronUp, ChevronDown, ChevronsUpDown, Settings2 } from 'lucide-react'
@@ -22,10 +23,11 @@ function sortStats(stats: PlayerStat[], key: ColKey, dir: SortDir): PlayerStat[]
   })
 }
 
+/** `rank` is 1-based; tied players share a medal and the next one is skipped. */
 function medal(rank: number) {
-  if (rank === 0) return '🥇'
-  if (rank === 1) return '🥈'
-  if (rank === 2) return '🥉'
+  if (rank === 1) return '🥇'
+  if (rank === 2) return '🥈'
+  if (rank === 3) return '🥉'
   return null
 }
 
@@ -143,6 +145,24 @@ export function StatsDisplay({ stats, finishedCount, scoringConfig }: Props) {
 
   const statsSorted = useMemo(() => sortStats(stats, statsKey, statsDir), [stats, statsKey, statsDir])
 
+  // Ranks are computed on the whole sorted list, then indexed per page. Two
+  // players are tied only when they match on everything the active sort uses —
+  // otherwise a tiebreaker already separated them.
+  const rankRanks = useMemo(() => {
+    const key = (s: PlayerStat): string => {
+      if (rankMode !== 'auto') return String(s[rankMode])
+      if (scoringConfig.method === 'C') return `${s.wins}|${s.avgFinalScore}|${s.contractRate}`
+      if (scoringConfig.method === 'B') return `${s.f1Points}|${s.wins}`
+      return String(composites.get(s.name) ?? 0)
+    }
+    return competitionRanks(rankSorted, key)
+  }, [rankSorted, rankMode, scoringConfig, composites])
+
+  const statsRanks = useMemo(
+    () => competitionRanks(statsSorted, (s) => String(s[statsKey])),
+    [statsSorted, statsKey],
+  )
+
   const totalRankPages = Math.ceil(stats.length / PAGE_SIZE)
   const totalStatsPages = Math.ceil(stats.length / PAGE_SIZE)
 
@@ -207,12 +227,12 @@ export function StatsDisplay({ stats, finishedCount, scoringConfig }: Props) {
               </thead>
               <tbody className="divide-y">
                 {rankSlice.map((s, i) => {
-                  const globalRank = (rankPage - 1) * PAGE_SIZE + i
-                  const isTop = methodIsAuto && globalRank === 0
+                  const rank = rankRanks[(rankPage - 1) * PAGE_SIZE + i]!
+                  const isTop = methodIsAuto && rank === 1
                   return (
                     <tr key={s.name} className={`hover:bg-muted/30 transition-colors ${isTop ? 'bg-yellow-50/40 dark:bg-yellow-950/10' : ''}`}>
                       <td className="px-4 py-3 text-muted-foreground font-mono text-center">
-                        {methodIsAuto ? (medal(globalRank) ?? `${globalRank + 1}.`) : `${globalRank + 1}.`}
+                        {methodIsAuto ? (medal(rank) ?? `${rank}.`) : `${rank}.`}
                       </td>
                       <td className="px-4 py-3 font-medium">{s.name}</td>
                       <td className="px-4 py-3 text-right font-bold">{s.wins}</td>
@@ -268,11 +288,11 @@ export function StatsDisplay({ stats, finishedCount, scoringConfig }: Props) {
             </div>
             <div className="divide-y">
               {rankSlice.map((s, i) => {
-                const globalRank = (rankPage - 1) * PAGE_SIZE + i
+                const rank = rankRanks[(rankPage - 1) * PAGE_SIZE + i]!
                 return (
                   <div key={s.name} className="flex items-center gap-3 px-4 py-3">
                     <span className="w-7 text-center text-sm font-mono shrink-0">
-                      {methodIsAuto ? (medal(globalRank) ?? `${globalRank + 1}.`) : `${globalRank + 1}.`}
+                      {methodIsAuto ? (medal(rank) ?? `${rank}.`) : `${rank}.`}
                     </span>
                     <span className="flex-1 font-medium text-sm truncate">{s.name}</span>
                     <div className="text-right shrink-0">
@@ -332,14 +352,15 @@ export function StatsDisplay({ stats, finishedCount, scoringConfig }: Props) {
             ))}
           </div>
           {statsSlice.map((s, i) => {
-            const globalRank = (statsPage - 1) * PAGE_SIZE + i
+            const rank = statsRanks[(statsPage - 1) * PAGE_SIZE + i]!
+            const showMedal = statsKey === 'wins' && statsDir === 'desc' && medal(rank)
             return (
               <Card key={s.name}>
                 <CardHeader className="pb-2 pt-4 px-4">
                   <CardTitle className="text-sm flex items-center gap-2">
-                    {statsKey === 'wins' && statsDir === 'desc' && medal(globalRank)
-                      ? <span>{medal(globalRank)}</span>
-                      : <span className="text-muted-foreground font-mono text-xs">{globalRank + 1}.</span>}
+                    {showMedal
+                      ? <span>{medal(rank)}</span>
+                      : <span className="text-muted-foreground font-mono text-xs">{rank}.</span>}
                     {s.name}
                   </CardTitle>
                 </CardHeader>
@@ -379,11 +400,11 @@ export function StatsDisplay({ stats, finishedCount, scoringConfig }: Props) {
               </thead>
               <tbody className="divide-y">
                 {statsSlice.map((s, i) => {
-                  const globalRank = (statsPage - 1) * PAGE_SIZE + i
+                  const rank = statsRanks[(statsPage - 1) * PAGE_SIZE + i]!
                   return (
                     <tr key={s.name} className="hover:bg-muted/30 transition-colors">
                       <td className="px-4 py-3 text-muted-foreground font-mono text-center">
-                        {statsKey === 'wins' && statsDir === 'desc' ? (medal(globalRank) ?? `${globalRank + 1}.`) : `${globalRank + 1}.`}
+                        {statsKey === 'wins' && statsDir === 'desc' ? (medal(rank) ?? `${rank}.`) : `${rank}.`}
                       </td>
                       <td className="px-4 py-3 font-medium">{s.name}</td>
                       <td className="px-4 py-3 text-right text-muted-foreground">{s.gamesPlayed}</td>

@@ -4,10 +4,11 @@ import { useEffect } from 'react'
 import confetti from 'canvas-confetti'
 
 interface Props {
-  name: string
+  /** Every player tied for first place. */
+  names: string[]
 }
 
-export function WinnerEffect({ name }: Props) {
+export function WinnerEffect({ names }: Props) {
   useEffect(() => {
     // Burst central
     confetti({
@@ -43,8 +44,14 @@ export function WinnerEffect({ name }: Props) {
         🏆
       </div>
       <div style={{ animation: 'winner-pop 0.7s cubic-bezier(0.34,1.56,0.64,1) both' }}>
-        <h1 className="text-3xl font-bold tracking-tight">{name} gagne !</h1>
-        <p className="text-muted-foreground text-sm mt-1">Félicitations !</p>
+        <h1 className="text-3xl font-bold tracking-tight">
+          {names.length > 1
+            ? `${names.slice(0, -1).join(', ')} et ${names.at(-1)} gagnent !`
+            : `${names[0]} gagne !`}
+        </h1>
+        <p className="text-muted-foreground text-sm mt-1">
+          {names.length > 1 ? 'Ex æquo — félicitations !' : 'Félicitations !'}
+        </p>
       </div>
     </div>
   )
