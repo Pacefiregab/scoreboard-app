@@ -7,15 +7,13 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
-import { AddPlayerDialog } from './AddPlayerDialog'
-import { ReorderPlayersDialog } from './ReorderPlayersDialog'
+import { ManagePlayersDialog } from './ManagePlayersDialog'
 import { QRCodeSVG } from 'qrcode.react'
 import {
   Menu,
-  UserPlus,
   ChevronsDown,
   Flag,
-  GripVertical,
+  Users,
   Hash,
   X,
   Share2,
@@ -30,8 +28,7 @@ interface Props {
 export function GameMenu({ game, onAction }: Props) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
-  const [addPlayerOpen, setAddPlayerOpen] = useState(false)
-  const [reorderOpen, setReorderOpen] = useState(false)
+  const [managePlayersOpen, setManagePlayersOpen] = useState(false)
   const [cardCountValue, setCardCountValue] = useState<string>('')
   const [loading, setLoading] = useState<string | null>(null)
   const [cancelConfirm, setCancelConfirm] = useState(false)
@@ -180,24 +177,13 @@ export function GameMenu({ game, onAction }: Props) {
               </div>
             )}
 
-            {/* Add player */}
-            {!inPlaying && (
-              <button
-                onClick={() => closeAndOpen(() => setAddPlayerOpen(true))}
-                className="flex items-center gap-3 px-1 py-3 text-sm hover:bg-muted rounded-lg transition-colors"
-              >
-                <UserPlus size={16} className="text-muted-foreground" />
-                Ajouter un joueur
-              </button>
-            )}
-
-            {/* Reorder players */}
+            {/* Players: order, add, activate, constraint */}
             <button
-              onClick={() => closeAndOpen(() => setReorderOpen(true))}
+              onClick={() => closeAndOpen(() => setManagePlayersOpen(true))}
               className="flex items-center gap-3 px-1 py-3 text-sm hover:bg-muted rounded-lg transition-colors"
             >
-              <GripVertical size={16} className="text-muted-foreground" />
-              Réorganiser les joueurs
+              <Users size={16} className="text-muted-foreground" />
+              Gérer les joueurs
             </button>
 
             {/* Switch to descending */}
@@ -267,17 +253,10 @@ export function GameMenu({ game, onAction }: Props) {
         </SheetContent>
       </Sheet>
 
-      <AddPlayerDialog
+      <ManagePlayersDialog
         game={game}
-        open={addPlayerOpen}
-        onOpenChange={setAddPlayerOpen}
-        onAdded={() => { onAction(); setAddPlayerOpen(false) }}
-      />
-
-      <ReorderPlayersDialog
-        game={game}
-        open={reorderOpen}
-        onClose={() => setReorderOpen(false)}
+        open={managePlayersOpen}
+        onClose={() => setManagePlayersOpen(false)}
         onDone={onAction}
       />
     </>

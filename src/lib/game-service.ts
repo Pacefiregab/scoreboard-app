@@ -365,17 +365,55 @@ export async function finishGame(adminToken: string): Promise<void> {
   })
 }
 
-export async function addPlayer(adminToken: string, name: string, initialScore: number, order: number): Promise<void> {
+export async function addPlayer(
+  adminToken: string,
+  name: string,
+  initialScore: number,
+  order: number,
+): Promise<{ id: string }> {
   const game = await findActiveGameByAdminToken(adminToken)
   const insertAt = Math.min(order, game.players.length)
   const playersToShift = game.players.filter((p) => p.order >= insertAt)
 
-  await prisma.$transaction([
-    ...playersToShift.map((p) =>
-      prisma.player.update({ where: { id: p.id }, data: { order: p.order + 1 } }),
-    ),
-    prisma.player.create({ data: { gameId: game.id, name: name.trim(), order: insertAt, initialScore } }),
+  const [, created] = await prisma.$transaction([
+    prisma.player.updateMany({
+      where: { id: { in: playersToShift.map((p) => p.id) } },
+      data: { order: { increment: 1 } },
+    }),
+    prisma.player.create({
+      data: { gameId: game.id, name: name.trim(), order: insertAt, initialScore },
+      select: { id: true },
+    }),
   ])
+  return created
+}
+
+/**
+ * Assigns absolute positions (and active flags) to every player in one
+ * transaction. Patching players one by one races: each request recomputes the
+ * shift from its own snapshot, so concurrent calls land on conflicting orders.
+ */
+export async function reorderPlayers(
+  adminToken: string,
+  entries: { id: string; order: number; active: boolean }[],
+): Promise<void> {
+  const game = await findActiveGameByAdminToken(adminToken)
+  const known = new Set(game.players.map((p) => p.id))
+
+  const unknown = entries.filter((e) => !known.has(e.id))
+  if (unknown.length > 0) throw new ApiError('Unknown player in reorder', 400)
+  if (entries.length !== game.players.length) {
+    throw new ApiError('Reorder must list every player of the game', 400)
+  }
+  if (!entries.some((e) => e.active)) {
+    throw new ApiError('Au moins un joueur doit rester actif', 422)
+  }
+
+  await prisma.$transaction(
+    entries.map((e) =>
+      prisma.player.update({ where: { id: e.id }, data: { order: e.order, active: e.active } }),
+    ),
+  )
 }
 
 // ─── Admin: player management ────────────────────────────────────────────────

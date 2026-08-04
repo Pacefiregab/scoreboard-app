@@ -1,5 +1,5 @@
-import { ok, handleError } from '@/lib/api-helpers'
-import { addPlayer } from '@/lib/game-service'
+import { ok, handleError, ApiError } from '@/lib/api-helpers'
+import { addPlayer, reorderPlayers } from '@/lib/game-service'
 
 export async function POST(
   req: Request,
@@ -16,8 +16,36 @@ export async function POST(
     const initialScore = typeof body.initialScore === 'number' ? body.initialScore : 0
     const order = typeof body.order === 'number' ? body.order : 9999
 
-    await addPlayer(token, body.name, initialScore, order)
-    return ok({ ok: true }, 201)
+    const created = await addPlayer(token, body.name, initialScore, order)
+    return ok({ ok: true, id: created.id }, 201)
+  } catch (e) {
+    return handleError(e)
+  }
+}
+
+/** Bulk reorder — assigns every player's position and active flag atomically. */
+export async function PUT(
+  req: Request,
+  { params }: { params: Promise<{ token: string }> },
+) {
+  try {
+    const { token } = await params
+    const body = await req.json() as { players?: unknown }
+
+    if (!Array.isArray(body.players)) {
+      return Response.json({ error: 'players must be an array' }, { status: 400 })
+    }
+
+    const entries = body.players.map((raw) => {
+      const p = raw as { id?: unknown; order?: unknown; active?: unknown }
+      if (typeof p.id !== 'string' || typeof p.order !== 'number' || typeof p.active !== 'boolean') {
+        throw new ApiError('Each player needs id, order and active', 400)
+      }
+      return { id: p.id, order: p.order, active: p.active }
+    })
+
+    await reorderPlayers(token, entries)
+    return ok({ ok: true })
   } catch (e) {
     return handleError(e)
   }

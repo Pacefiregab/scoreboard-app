@@ -6,30 +6,29 @@ import { resolveConstrainedPlayerId } from '@/lib/constrained-player'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { NumberStepper } from './NumberStepper'
-import { Lock, RotateCcw } from 'lucide-react'
+import { Lock } from 'lucide-react'
 
 interface Props {
   game: GameState
   round: RoundState
   onSubmit: (bets: { playerId: string; announced: number }[]) => Promise<void>
-  onConstraintChange?: () => void
 }
 
-export function BettingPhase({ game, round, onSubmit, onConstraintChange }: Props) {
+export function BettingPhase({ game, round, onSubmit }: Props) {
   const [values, setValues] = useState<Record<string, number>>(
     Object.fromEntries(game.players.map((p) => [p.id, 0])),
   )
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  // Applied instantly so the UI doesn't wait for the next poll to reflect the pick.
-  const [pendingConstraint, setPendingConstraint] = useState<string | null | undefined>(undefined)
 
   const sortedPlayers = [...game.players].filter((p) => p.active).sort((a, b) => a.order - b.order)
 
-  const overrideId = pendingConstraint !== undefined ? pendingConstraint : round.constrainedPlayerId
-  const constrainedPlayerId = resolveConstrainedPlayerId(sortedPlayers, round.number, overrideId)!
+  const constrainedPlayerId = resolveConstrainedPlayerId(
+    sortedPlayers,
+    round.number,
+    round.constrainedPlayerId,
+  )!
   const constrainedPlayer = sortedPlayers.find((p) => p.id === constrainedPlayerId)!
-  const isManual = Boolean(overrideId && sortedPlayers.some((p) => p.id === overrideId))
 
   const sumOfOthers = sortedPlayers
     .filter((p) => p.id !== constrainedPlayerId)
@@ -44,29 +43,6 @@ export function BettingPhase({ game, round, onSubmit, onConstraintChange }: Prop
 
   function set(playerId: string, value: number) {
     setValues((prev) => ({ ...prev, [playerId]: value }))
-  }
-
-  async function setConstrainedPlayer(playerId: string | null) {
-    const previous = pendingConstraint
-    setPendingConstraint(playerId)
-    setError(null)
-    try {
-      const res = await fetch(`/api/games/${game.adminToken}/rounds/${round.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ constrainedPlayerId: playerId }),
-      })
-      if (!res.ok) {
-        const data = await res.json() as { error?: string }
-        setPendingConstraint(previous)
-        setError(data.error ?? 'Erreur lors du changement de contrainte')
-        return
-      }
-      onConstraintChange?.()
-    } catch {
-      setPendingConstraint(previous)
-      setError('Erreur réseau')
-    }
   }
 
   async function handleSubmit() {
@@ -99,22 +75,9 @@ export function BettingPhase({ game, round, onSubmit, onConstraintChange }: Prop
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
                   <span className="text-base font-medium">{player.name}</span>
-                  <button
-                    onClick={() => setConstrainedPlayer(isConstrained ? null : player.id)}
-                    title={
-                      isConstrained
-                        ? 'Revenir à la rotation automatique'
-                        : `Contraindre ${player.name} à la place`
-                    }
-                    aria-pressed={isConstrained}
-                    className={`p-0.5 rounded transition-colors ${
-                      isConstrained
-                        ? 'text-amber-600 dark:text-amber-400'
-                        : 'text-muted-foreground/40 hover:text-amber-600 dark:hover:text-amber-400'
-                    }`}
-                  >
-                    <Lock size={13} />
-                  </button>
+                  {isConstrained && (
+                    <Lock size={13} className="text-amber-600 dark:text-amber-400 shrink-0" />
+                  )}
                 </div>
                 {isConstrained && (
                   <p className={`text-xs mt-0.5 ${isForbidden ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
@@ -133,15 +96,9 @@ export function BettingPhase({ game, round, onSubmit, onConstraintChange }: Prop
           )
         })}
 
-        {isManual && (
-          <button
-            onClick={() => setConstrainedPlayer(null)}
-            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <RotateCcw size={12} />
-            Contrainte décalée sur {constrainedPlayer.name} — revenir à la rotation par défaut
-          </button>
-        )}
+        <p className="text-xs text-muted-foreground">
+          🔒 {constrainedPlayer.name} est contraint — modifiable depuis « Gérer les joueurs ».
+        </p>
 
         <div
           className={`flex justify-between text-sm pt-1 ${constraintViolated ? 'text-destructive' : 'text-muted-foreground'}`}

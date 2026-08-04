@@ -35,10 +35,12 @@ PWA web de suivi de scores pour parties de cartes. Un hôte crée et gère la pa
 - [x] Calcul automatique : `10 + 10×plis` si contrat rempli, `-10×|écart|` sinon
 - [x] Saisie des plis avec validation de la somme (somme = nb de cartes)
 - [x] Steppers +/− pour la saisie mobile (touch targets 48×48px)
+- [x] Écran unique « Gérer les joueurs » : ordre, ajout, activation et joueur
+      contraint dans un seul tableau, enregistrés ensemble
 - [x] Ajout de joueurs en cours de partie (score de départ + position)
 - [x] Désactivation/réactivation d'un joueur en cours de partie (exclus des manches suivantes, score conservé)
-- [x] Réorganisation de l'ordre des joueurs en cours de partie
-- [x] Preview du joueur contraint lors de l'ajout ou du réordonnancement
+- [x] Réorganisation atomique de l'ordre des joueurs (une transaction)
+- [x] Preview en direct du joueur contraint pendant l'édition
 - [x] Modification du nombre de cartes pendant la phase de paris
 - [x] Détection automatique de fin de partie (retour à 0 carte en descente)
 
@@ -154,6 +156,7 @@ PWA web de suivi de scores pour parties de cartes. Un hôte crée et gère la pa
 | Q6 | Égalité | Ex-æquo accepté, pas de départage |
 | Q7 | Ajout joueur en cours | L'admin choisit le score de départ et la position |
 | Q8 | Menu admin | Sheet bas d'écran, déclenché depuis le header |
+| Q15 | Gestion des joueurs | Un seul écran (ordre, ajout, activation, contrainte), tout appliqué à l'enregistrement |
 | Q9 | Fin de partie | Disponible dès qu'il y a des scores, bloqué pendant PLAYING |
 | Q10 | Page admin | Basic Auth via `ADMIN_PASSWORD` env var ; ouverte si non définie |
 | Q11 | Thèmes | 3 thèmes : clair, sombre, rose — toggle dans le header |
