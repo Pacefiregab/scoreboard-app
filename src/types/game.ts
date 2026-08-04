@@ -34,6 +34,16 @@ export interface RoundState {
   scores: RoundScoreState[]
 }
 
+/** Optional rules picked when the game is created. */
+export interface GameRules {
+  /** Each player may double one round's score, armed by the admin at bet time. */
+  bonusX2: boolean
+  /** The admin may deduct arbitrary points (misdeal, wrong card…). */
+  penalties: boolean
+  /** Points removed per penalty, stored positive. Only meaningful with `penalties`. */
+  penaltyPoints: number
+}
+
 export interface GameState {
   id: string
   adminToken: string
@@ -41,6 +51,7 @@ export interface GameState {
   status: GameStatus
   phase: GamePhase
   isAdmin: boolean
+  rules: GameRules
   players: PlayerState[]
   rounds: RoundState[]
 }

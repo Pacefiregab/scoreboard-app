@@ -14,6 +14,11 @@ model Game {
   phase       GamePhase  @default(ASCENDING)
   createdAt   DateTime   @default(now())
   finishedAt  DateTime?
+  // Optional rules, chosen at creation
+  ruleBonusX2       Boolean @default(false)
+  rulePenalties     Boolean @default(false)
+  /// Points deducted per penalty, stored positive
+  rulePenaltyPoints Int     @default(10)
   players     Player[]
   rounds      Round[]
 }

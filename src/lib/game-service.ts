@@ -3,7 +3,7 @@ import { prisma } from './prisma'
 import { computeRoundScores, isLastBetValid, isGameOver, nextCardCount } from './enculette'
 import { resolveConstrainedPlayerId, nextConstrainedPlayerId } from './constrained-player'
 import { ApiError } from './api-helpers'
-import type { GameState, RoundState } from '@/types/game'
+import type { GameState, GameRules, RoundState } from '@/types/game'
 import { DEFAULT_CONFIG, type ScoringConfig } from './scoring'
 
 // ─── Prisma include + inferred type ─────────────────────────────────────────
@@ -62,6 +62,11 @@ function buildGameState(game: GameWithRelations, isAdmin: boolean): GameState {
     status: game.status,
     phase: game.phase,
     isAdmin,
+    rules: {
+      bonusX2: game.ruleBonusX2,
+      penalties: game.rulePenalties,
+      penaltyPoints: game.rulePenaltyPoints,
+    },
     players,
     rounds,
   }
@@ -146,11 +151,17 @@ async function findActiveGameByAdminToken(adminToken: string): Promise<GameWithR
 
 // ─── Service functions ───────────────────────────────────────────────────────
 
-export async function createGame(playerNames: string[]): Promise<GameState> {
+export async function createGame(
+  playerNames: string[],
+  rules?: Partial<GameRules>,
+): Promise<GameState> {
   if (playerNames.length === 0) throw new ApiError('At least one player is required', 400)
 
   const game = await prisma.game.create({
     data: {
+      ruleBonusX2: rules?.bonusX2 ?? false,
+      rulePenalties: rules?.penalties ?? false,
+      ...(rules?.penaltyPoints !== undefined ? { rulePenaltyPoints: rules.penaltyPoints } : {}),
       players: {
         create: playerNames.map((name, index) => ({
           name: name.trim(),

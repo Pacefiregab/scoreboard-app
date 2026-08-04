@@ -3,16 +3,43 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { PlayerNameInput } from '@/components/PlayerNameInput'
 import { AppHeader } from '@/components/AppHeader'
-import { ChevronUp, ChevronDown, X, Plus } from 'lucide-react'
+import { ChevronUp, ChevronDown, X, Plus, ChevronRight, Sparkles, MinusCircle, Check } from 'lucide-react'
+
+const RULES = [
+  {
+    key: 'bonusX2' as const,
+    icon: Sparkles,
+    label: 'Bonus ×2',
+    desc: 'Chaque joueur peut doubler son score sur une seule manche de la partie. L’admin arme le bonus au moment des paris.',
+  },
+  {
+    key: 'penalties' as const,
+    icon: MinusCircle,
+    label: 'Pénalités',
+    desc: 'L’admin peut retirer des points à un joueur (mauvaise distribution, erreur de carte…).',
+  },
+]
 
 export default function NewGamePage() {
   const router = useRouter()
   const [players, setPlayers] = useState(['', ''])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [rulesOpen, setRulesOpen] = useState(false)
+  const [rules, setRules] = useState({ bonusX2: false, penalties: false })
+  const [penaltyPoints, setPenaltyPoints] = useState('10')
+
+  const activeRules = RULES.filter((r) => rules[r.key])
+  const penaltyValue = parseInt(penaltyPoints, 10)
+  const penaltyInvalid = rules.penalties && (!Number.isInteger(penaltyValue) || penaltyValue < 1)
+
+  function toggleRule(key: (typeof RULES)[number]['key']) {
+    setRules((prev) => ({ ...prev, [key]: !prev[key] }))
+  }
 
   function updatePlayer(index: number, value: string) {
     setPlayers((prev) => prev.map((p, i) => (i === index ? value : p)))
@@ -45,7 +72,7 @@ export default function NewGamePage() {
   }
 
   const validPlayers = players.map((p) => p.trim()).filter(Boolean)
-  const canSubmit = validPlayers.length >= 2 && !loading
+  const canSubmit = validPlayers.length >= 2 && !loading && !penaltyInvalid
 
   async function handleSubmit() {
     if (!canSubmit) return
@@ -55,7 +82,10 @@ export default function NewGamePage() {
       const res = await fetch('/api/games', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ players: validPlayers }),
+        body: JSON.stringify({
+          players: validPlayers,
+          rules: { ...rules, ...(rules.penalties ? { penaltyPoints: penaltyValue } : {}) },
+        }),
       })
       if (!res.ok) {
         const data = await res.json() as { error?: string }
@@ -124,6 +154,87 @@ export default function NewGamePage() {
             <Plus size={14} />
             Ajouter un joueur
           </Button>
+
+          {/* Optional rules */}
+          <div className="rounded-lg border">
+            <button
+              type="button"
+              onClick={() => setRulesOpen((o) => !o)}
+              aria-expanded={rulesOpen}
+              className="flex w-full items-center gap-2 px-3 py-2.5 text-sm hover:bg-muted/50 transition-colors rounded-lg"
+            >
+              <ChevronRight
+                size={15}
+                className={`text-muted-foreground transition-transform ${rulesOpen ? 'rotate-90' : ''}`}
+              />
+              <span className="flex-1 text-left">Règles supplémentaires</span>
+              <span className="text-xs text-muted-foreground">
+                {activeRules.length > 0
+                  ? activeRules
+                      .map((r) =>
+                        r.key === 'penalties' && !penaltyInvalid
+                          ? `${r.label} (−${penaltyValue})`
+                          : r.label,
+                      )
+                      .join(' · ')
+                  : 'Aucune'}
+              </span>
+            </button>
+
+            {rulesOpen && (
+              <div className="border-t p-2 space-y-1">
+                {RULES.map(({ key, icon: Icon, label, desc }) => {
+                  const checked = rules[key]
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      role="checkbox"
+                      aria-checked={checked}
+                      onClick={() => toggleRule(key)}
+                      className="flex w-full items-start gap-3 rounded-lg px-2 py-2 text-left hover:bg-muted/50 transition-colors"
+                    >
+                      <span
+                        className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors ${
+                          checked
+                            ? 'bg-primary border-primary text-primary-foreground'
+                            : 'border-input'
+                        }`}
+                      >
+                        {checked && <Check size={11} strokeWidth={3} />}
+                      </span>
+                      <span className="flex-1 min-w-0">
+                        <span className="flex items-center gap-1.5 text-sm font-medium">
+                          <Icon size={13} className="text-muted-foreground" />
+                          {label}
+                        </span>
+                        <span className="block text-xs text-muted-foreground mt-0.5">{desc}</span>
+                      </span>
+                    </button>
+                  )
+                })}
+
+                {rules.penalties && (
+                  <div className="flex items-center gap-2 pl-9 pr-2 pb-1">
+                    <label htmlFor="penalty-points" className="text-xs text-muted-foreground flex-1">
+                      Points retirés par pénalité
+                    </label>
+                    <span className="text-sm text-muted-foreground">−</span>
+                    <Input
+                      id="penalty-points"
+                      type="number"
+                      min={1}
+                      value={penaltyPoints}
+                      onChange={(e) => setPenaltyPoints(e.target.value)}
+                      aria-invalid={penaltyInvalid}
+                      className={`h-8 w-20 text-center ${penaltyInvalid ? 'border-destructive' : ''}`}
+                    />
+                    <span className="text-xs text-muted-foreground">pts</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           {error && <p className="text-sm text-destructive">{error}</p>}
 

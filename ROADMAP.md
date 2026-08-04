@@ -10,6 +10,10 @@ PWA web de suivi de scores pour parties de cartes. Un hôte crée et gère la pa
 
 ### 1.1 Création de partie ✅
 
+- [x] Sous-menu « Règles supplémentaires » : bonus ×2 et pénalités (avec
+      montant unitaire), enregistrés avec la partie
+- [ ] Application en cours de jeu du bonus ×2 (armé au moment des paris)
+- [ ] Application en cours de jeu des pénalités (retrait de points par l'admin)
 - [x] Saisie des noms de joueurs avec réorganisation (flèches haut/bas)
 - [x] Génération d'un token admin (secret) et d'un token spectateur (public)
 - [x] Redirection vers la vue admin après création

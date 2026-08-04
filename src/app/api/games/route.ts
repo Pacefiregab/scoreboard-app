@@ -12,14 +12,39 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json() as { players?: unknown }
+    const body = await req.json() as { players?: unknown; rules?: unknown }
     const players = body.players
 
     if (!Array.isArray(players) || players.some((p) => typeof p !== 'string')) {
       return Response.json({ error: 'players must be an array of strings' }, { status: 400 })
     }
 
-    const game = await createGame(players as string[])
+    const raw = (body.rules ?? {}) as {
+      bonusX2?: unknown
+      penalties?: unknown
+      penaltyPoints?: unknown
+    }
+
+    // Stored positive; the deduction happens when a penalty is applied.
+    let penaltyPoints: number | undefined
+    if (raw.penaltyPoints !== undefined) {
+      const n = Number(raw.penaltyPoints)
+      if (!Number.isInteger(n) || n < 1) {
+        return Response.json(
+          { error: 'penaltyPoints must be a positive integer' },
+          { status: 400 },
+        )
+      }
+      penaltyPoints = n
+    }
+
+    const rules = {
+      bonusX2: raw.bonusX2 === true,
+      penalties: raw.penalties === true,
+      ...(penaltyPoints !== undefined ? { penaltyPoints } : {}),
+    }
+
+    const game = await createGame(players as string[], rules)
     return ok(game, 201)
   } catch (e) {
     return handleError(e)

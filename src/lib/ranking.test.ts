@@ -73,6 +73,7 @@ function makeGame(
   const roundCount = Math.max(0, ...players.map((p) => p.bets.length))
   return {
     id: 'g', adminToken: 't', viewToken: 'v', status: 'FINISHED', phase: 'ASCENDING', isAdmin: true,
+    rules: { bonusX2: false, penalties: false, penaltyPoints: 10 },
     players: players.map((p, i) => ({
       id: p.id, name: p.id, order: i, active: true, initialScore: 0, totalScore: p.score,
     })),
