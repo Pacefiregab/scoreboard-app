@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { PlayerNameInput } from '@/components/PlayerNameInput'
+import { Tooltip } from '@/components/ui/tooltip'
 import { ChevronUp, ChevronDown, EyeOff, Eye, Lock, Plus, X, RotateCcw } from 'lucide-react'
 
 /** A player still being added: no server id until save. */
@@ -201,46 +202,57 @@ export function ManagePlayersDialog({ game, open, onClose, onDone }: Props) {
                 )}
 
                 {/* Constrain */}
-                <button
-                  onClick={() => setConstraint(isConstrained ? null : row.id)}
-                  disabled={!row.active}
-                  title={
+                <Tooltip
+                  label={
                     !row.active
                       ? 'Un joueur désactivé ne peut pas être contraint'
                       : isConstrained
                         ? 'Revenir à la rotation automatique'
                         : `Contraindre ${row.name}`
                   }
-                  className={`p-1 rounded transition-colors disabled:opacity-20 ${
-                    isConstrained
-                      ? 'text-amber-600 dark:text-amber-400'
-                      : 'text-muted-foreground/40 hover:text-amber-600 dark:hover:text-amber-400'
-                  }`}
                 >
-                  <Lock size={14} />
-                </button>
+                  <button
+                    onClick={() => setConstraint(isConstrained ? null : row.id)}
+                    disabled={!row.active}
+                    className={`p-1 rounded transition-colors disabled:opacity-20 ${
+                      isConstrained
+                        ? 'text-amber-600 dark:text-amber-400'
+                        : 'text-muted-foreground/40 hover:text-amber-600 dark:hover:text-amber-400'
+                    }`}
+                  >
+                    <Lock size={14} />
+                  </button>
+                </Tooltip>
 
                 {/* Activate / deactivate, or drop the pending row */}
                 {isNew ? (
-                  <button
-                    onClick={removePending}
-                    title="Retirer"
-                    className="p-1 rounded text-muted-foreground hover:text-destructive transition-colors"
-                  >
-                    <X size={15} />
-                  </button>
+                  <Tooltip label="Retirer ce joueur en attente">
+                    <button
+                      onClick={removePending}
+                      className="p-1 rounded text-muted-foreground hover:text-destructive transition-colors"
+                    >
+                      <X size={15} />
+                    </button>
+                  </Tooltip>
                 ) : (
-                  <button
-                    onClick={() => toggleActive(row.id)}
-                    title={row.active ? 'Désactiver' : 'Réactiver'}
-                    className={`p-1 rounded transition-colors ${
+                  <Tooltip
+                    label={
                       row.active
-                        ? 'text-muted-foreground hover:text-foreground'
-                        : 'text-muted-foreground hover:text-green-600'
-                    }`}
+                        ? 'Désactiver — exclu des manches suivantes, score conservé'
+                        : 'Réactiver'
+                    }
                   >
-                    {row.active ? <EyeOff size={15} /> : <Eye size={15} />}
-                  </button>
+                    <button
+                      onClick={() => toggleActive(row.id)}
+                      className={`p-1 rounded transition-colors ${
+                        row.active
+                          ? 'text-muted-foreground hover:text-foreground'
+                          : 'text-muted-foreground hover:text-green-600'
+                      }`}
+                    >
+                      {row.active ? <EyeOff size={15} /> : <Eye size={15} />}
+                    </button>
+                  </Tooltip>
                 )}
 
                 <button

@@ -67,7 +67,7 @@ export function PlayingPhase({ game, round, onSubmit, onBack }: Props) {
             onClick={handleBack}
             disabled={backLoading || loading}
             className="text-muted-foreground hover:text-foreground disabled:opacity-40 transition-colors p-0.5 -ml-0.5"
-            title="Revenir aux paris"
+            aria-label="Revenir aux paris"
           >
             <ChevronLeft size={18} />
           </button>

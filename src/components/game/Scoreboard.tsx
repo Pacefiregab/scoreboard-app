@@ -2,6 +2,7 @@ import type { GameState } from '@/types/game'
 import { getStandings } from '@/lib/ranking'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Tooltip } from '@/components/ui/tooltip'
 
 interface Props {
   game: GameState
@@ -34,15 +35,14 @@ export function Scoreboard({ game }: Props) {
               </Badge>
             )}
             {announced !== null && currentRound && (
-              <Badge
-                variant="outline"
-                className={gap > 0
-                  ? 'border-orange-300 text-orange-700 dark:border-orange-800 dark:text-orange-400'
-                  : 'border-blue-300 text-blue-700 dark:border-blue-800 dark:text-blue-400'}
-                title={`${announced} plis annoncés pour ${currentRound.cardCount} carte${currentRound.cardCount > 1 ? 's' : ''} — ${gap > 0 ? 'sur-enchère' : 'sous-enchère'}`}
+              <Tooltip
+                side="bottom"
+                label={`${announced} pli${announced > 1 ? 's' : ''} annoncé${announced > 1 ? 's' : ''} pour ${currentRound.cardCount} carte${currentRound.cardCount > 1 ? 's' : ''} — ${gap > 0 ? 'sur-enchère' : 'sous-enchère'}`}
               >
-                {announced} pli{announced > 1 ? 's' : ''} annoncé{announced > 1 ? 's' : ''} · {gap > 0 ? `+${gap}` : gap}
-              </Badge>
+                <Badge variant="outline">
+                  {announced} pli{announced > 1 ? 's' : ''} annoncé{announced > 1 ? 's' : ''} · {gap > 0 ? `+${gap}` : gap}
+                </Badge>
+              </Tooltip>
             )}
           </div>
         </div>
@@ -64,21 +64,21 @@ export function Scoreboard({ game }: Props) {
 
                 {/* Shown on tied players: it explains their order within the group */}
                 {tied && roundsPlayed > 0 && (
-                  <span
-                    className="text-[10px] text-amber-600 dark:text-amber-400 font-medium shrink-0"
-                    title={`${contractsWon}/${roundsPlayed} contrats réussis — ordre entre ex æquo`}
+                  <Tooltip
+                    label={`${contractsWon}/${roundsPlayed} contrats réussis — départage l’ordre entre ex æquo`}
                   >
-                    {Math.round(contractRate * 100)} %
-                  </span>
+                    <span className="shrink-0 text-[10px] font-medium text-muted-foreground">
+                      {Math.round(contractRate * 100)} %
+                    </span>
+                  </Tooltip>
                 )}
 
                 {bet?.bonusX2 && (
-                  <span
-                    className="text-[10px] font-bold text-violet-600 dark:text-violet-400 shrink-0"
-                    title="Bonus ×2 armé sur cette manche"
-                  >
-                    ×2
-                  </span>
+                  <Tooltip label="Bonus ×2 : points de cette manche doublés">
+                    <span className="shrink-0 rounded border border-primary/40 bg-primary/10 px-1 text-[10px] font-bold text-foreground">
+                      ×2
+                    </span>
+                  </Tooltip>
                 )}
 
                 {bet && (

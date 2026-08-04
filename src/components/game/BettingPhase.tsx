@@ -6,6 +6,7 @@ import { resolveConstrainedPlayerId } from '@/lib/constrained-player'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { NumberStepper } from './NumberStepper'
+import { Tooltip } from '@/components/ui/tooltip'
 import { Lock, Sparkles } from 'lucide-react'
 
 interface Props {
@@ -104,34 +105,37 @@ export function BettingPhase({ game, round, onSubmit }: Props) {
                   </p>
                 )}
                 {bonusArmed && (
-                  <p className="text-xs mt-0.5 text-violet-600 dark:text-violet-400 font-medium">
+                  <p className="text-xs mt-0.5 text-foreground font-medium">
                     points de la manche doublés, gain comme perte
                   </p>
                 )}
               </div>
 
               {game.rules.bonusX2 && (
-                <button
-                  onClick={() => !bonusSpent && toggleBonus(player.id)}
-                  disabled={bonusSpent}
-                  aria-pressed={bonusArmed}
-                  title={
+                <Tooltip
+                  label={
                     bonusSpent
                       ? `${player.name} a déjà utilisé son bonus ×2`
                       : bonusArmed
                         ? 'Retirer le bonus ×2'
-                        : `Armer le bonus ×2 de ${player.name} (une seule fois par partie)`
+                        : `Armer le bonus ×2 de ${player.name} — une seule fois par partie, la perte est doublée aussi`
                   }
-                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border text-xs font-bold transition-colors ${
-                    bonusSpent
-                      ? 'border-dashed border-muted-foreground/20 text-muted-foreground/30'
-                      : bonusArmed
-                        ? 'border-violet-500 bg-violet-500 text-white'
-                        : 'border-input text-muted-foreground hover:border-violet-400 hover:text-violet-600 dark:hover:text-violet-400'
-                  }`}
                 >
-                  {bonusSpent ? <Sparkles size={13} /> : '×2'}
-                </button>
+                  <button
+                    onClick={() => !bonusSpent && toggleBonus(player.id)}
+                    disabled={bonusSpent}
+                    aria-pressed={bonusArmed}
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border text-xs font-bold transition-colors ${
+                      bonusSpent
+                        ? 'border-dashed border-border text-muted-foreground/40'
+                        : bonusArmed
+                          ? 'border-primary bg-primary text-primary-foreground'
+                          : 'border-input text-muted-foreground hover:border-primary hover:text-foreground'
+                    }`}
+                  >
+                    {bonusSpent ? <Sparkles size={13} /> : '×2'}
+                  </button>
+                </Tooltip>
               )}
 
               <NumberStepper

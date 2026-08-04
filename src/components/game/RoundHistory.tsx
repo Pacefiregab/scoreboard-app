@@ -1,5 +1,6 @@
 import type { GameState } from '@/types/game'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Tooltip } from '@/components/ui/tooltip'
 
 interface Props {
   game: GameState
@@ -71,12 +72,11 @@ export function RoundHistory({ game }: Props) {
                               {score && score.points >= 0 ? '+' : ''}{score?.points ?? '—'}
                             </span>
                             {bet?.bonusX2 && (
-                              <span
-                                className="text-[10px] font-bold text-violet-600 dark:text-violet-400"
-                                title="Bonus ×2 utilisé sur cette manche"
-                              >
-                                ×2
-                              </span>
+                              <Tooltip label="Bonus ×2 : points de cette manche doublés">
+                                <span className="rounded border border-primary/40 bg-primary/10 px-1 text-[10px] font-bold text-foreground">
+                                  ×2
+                                </span>
+                              </Tooltip>
                             )}
                           </div>
                           <div className="text-muted-foreground font-mono">
