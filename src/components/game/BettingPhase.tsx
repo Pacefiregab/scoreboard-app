@@ -105,9 +105,7 @@ export function BettingPhase({ game, round, onSubmit }: Props) {
                   </p>
                 )}
                 {bonusArmed && (
-                  <p className="text-xs mt-0.5 text-foreground font-medium">
-                    points de la manche doublés, gain comme perte
-                  </p>
+                  <p className="text-xs mt-0.5 text-muted-foreground">×2 armé</p>
                 )}
               </div>
 

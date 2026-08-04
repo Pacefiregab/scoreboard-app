@@ -5,6 +5,7 @@ import type { GameState, RoundState } from '@/types/game'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { NumberStepper } from './NumberStepper'
+import { BonusX2Badge } from './BonusX2Badge'
 import { ChevronLeft } from 'lucide-react'
 
 interface Props {
@@ -93,8 +94,9 @@ export function PlayingPhase({ game, round, onSubmit, onBack }: Props) {
                 <span className={`text-base font-medium ${contractMet ? 'text-green-700 dark:text-green-400' : ''}`}>
                   {player.name}
                 </span>
-                <p className={`text-xs mt-0.5 ${contractMet ? 'text-green-600 dark:text-green-500 font-medium' : 'text-muted-foreground'}`}>
+                <p className={`flex items-center gap-1.5 text-xs mt-0.5 ${contractMet ? 'text-green-600 dark:text-green-500 font-medium' : 'text-muted-foreground'}`}>
                   {contractMet ? `✓ contrat (${bet!.announced})` : `pariait ${bet?.announced ?? '?'}`}
+                  {bet?.bonusX2 && <BonusX2Badge />}
                 </p>
               </div>
               <NumberStepper
