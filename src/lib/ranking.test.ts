@@ -99,28 +99,34 @@ describe('getContractRecord', () => {
 })
 
 describe('getStandings', () => {
-  it('separates equal scores by contract rate', () => {
-    // Both finish on 30, but B met 2/2 contracts and A only 1/2.
+  it('keeps the rank shared on equal scores, whatever the contract rate', () => {
+    // B met 2/2 contracts and A only 1/2, so B is listed first — but the rank
+    // depends on the score alone, so both stay first.
     const game = makeGame([
       { id: 'A', score: 30, bets: [[1, 1], [1, 0]] },
       { id: 'B', score: 30, bets: [[1, 1], [1, 1]] },
     ])
     const s = getStandings(game)
     expect(s.map((x) => x.player.id)).toEqual(['B', 'A'])
-    expect(s.map((x) => x.rank)).toEqual([1, 2])
-    expect(s.every((x) => x.scoreTied)).toBe(true)
-    expect(s.some((x) => x.rankShared)).toBe(false)
+    expect(s.map((x) => x.rank)).toEqual([1, 1])
+    expect(s.every((x) => x.tied)).toBe(true)
   })
 
-  it('shares the rank when score and contract rate both match', () => {
+  it('orders a tie group by rate without splitting the rank', () => {
+    // The reported case: three players on 20 must all show the same rank.
     const game = makeGame([
-      { id: 'A', score: 30, bets: [[1, 1]] },
-      { id: 'B', score: 30, bets: [[2, 2]] },
-      { id: 'C', score: 10, bets: [[1, 0]] },
+      { id: 'gab',    score: 40, bets: [[1, 1], [1, 1], [1, 1], [1, 1]] },
+      { id: 'azdasd', score: 20, bets: [[1, 1], [1, 1], [1, 1], [1, 0]] },
+      { id: 'ccc',    score: 20, bets: [[1, 1], [1, 1], [1, 1], [1, 0]] },
+      { id: 'aaaa',   score: 20, bets: [[1, 1], [1, 1]] },
+      { id: 'ddd',    score: 10, bets: [[1, 1]] },
+      { id: 'bbb',    score: -10, bets: [[1, 1], [1, 1], [1, 0], [1, 0]] },
     ])
     const s = getStandings(game)
-    expect(s.map((x) => x.rank)).toEqual([1, 1, 3])
-    expect(s.slice(0, 2).every((x) => x.rankShared)).toBe(true)
+    // aaaa (100%) leads the group of 20s, but all three share rank 2
+    expect(s.map((x) => `${x.rank}. ${x.player.id}`)).toEqual([
+      '1. gab', '2. aaaa', '2. azdasd', '2. ccc', '5. ddd', '6. bbb',
+    ])
   })
 
   it('leaves distinct scores alone regardless of contract rate', () => {
@@ -131,10 +137,10 @@ describe('getStandings', () => {
     ])
     const s = getStandings(game)
     expect(s.map((x) => x.player.id)).toEqual(['A', 'B'])
-    expect(s.every((x) => x.scoreTied)).toBe(false)
+    expect(s.every((x) => x.tied)).toBe(false)
   })
 
-  it('reproduces the spec example, tie broken by rate', () => {
+  it('reproduces the spec example', () => {
     const game = makeGame([
       { id: 'A', score: 30, bets: [[1, 1], [1, 1]] },
       { id: 'B', score: 30, bets: [[1, 1], [1, 0]] },
@@ -142,7 +148,7 @@ describe('getStandings', () => {
       { id: 'D', score: 0,  bets: [[1, 0], [1, 0]] },
     ])
     const s = getStandings(game)
-    expect(s.map((x) => `${x.rank}. ${x.player.id}`)).toEqual(['1. A', '2. B', '3. C', '4. D'])
+    expect(s.map((x) => `${x.rank}. ${x.player.id}`)).toEqual(['1. A', '1. B', '3. C', '4. D'])
   })
 
   it('handles a game with no rounds played yet', () => {

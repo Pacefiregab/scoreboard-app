@@ -29,17 +29,17 @@ export default async function SummaryPage({ params }: { params: Promise<{ token:
           <CardTitle className="text-base">Classement final</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          {standings.map(({ player, rank, contractRate, contractsWon, roundsPlayed, scoreTied }) => {
+          {standings.map(({ player, rank, contractRate, contractsWon, roundsPlayed, tied }) => {
             const isWinner = rank === 1
             return (
               <div key={player.id} className={`flex items-center gap-3 rounded-lg px-3 py-2 ${isWinner ? 'bg-primary/10' : ''}`}>
                 <span className="w-5 text-sm text-muted-foreground">{rank}.</span>
                 <span className="flex-1 font-medium">{player.name}</span>
-                {/* Shown only when the rate is what separated equal scores */}
-                {scoreTied && roundsPlayed > 0 && (
+                {/* Shown on tied players: it explains their order within the group */}
+                {tied && roundsPlayed > 0 && (
                   <span
                     className="text-xs text-amber-600 dark:text-amber-400 font-medium"
-                    title={`${contractsWon}/${roundsPlayed} contrats réussis — départage à égalité de score`}
+                    title={`${contractsWon}/${roundsPlayed} contrats réussis — ordre entre ex æquo`}
                   >
                     {Math.round(contractRate * 100)} %
                   </span>

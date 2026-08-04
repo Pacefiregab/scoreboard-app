@@ -37,15 +37,14 @@ export function isTied(ranks: number[], index: number): boolean {
 
 export interface Standing {
   player: PlayerState
+  /** Determined by score alone, so equal scores always share a rank. */
   rank: number
   /** Contracts met over rounds actually played, in this game only. */
   contractRate: number
   contractsWon: number
   roundsPlayed: number
-  /** Another player finished on the same score — the rate decided the order. */
-  scoreTied: boolean
-  /** Same score *and* same rate: genuinely inseparable, so the rank is shared. */
-  rankShared: boolean
+  /** Another player has the same score, so the rate decided the display order. */
+  tied: boolean
 }
 
 /** Contracts met vs rounds played by a player in this game. */
@@ -59,7 +58,10 @@ export function getContractRecord(game: GameState, playerId: string) {
 
 /**
  * Players ordered by score, then by contract success rate within this game.
- * Players level on both keep the same rank.
+ *
+ * The rate only orders players *inside* a group of equal scores — it never
+ * changes the rank itself, so everyone on the same score shares a rank and the
+ * best performer of the group is simply listed first.
  */
 export function getStandings(game: GameState): Standing[] {
   const withRecord = game.players.map((player) => ({
@@ -71,7 +73,7 @@ export function getStandings(game: GameState): Standing[] {
     (a, b) => b.player.totalScore - a.player.totalScore || b.rate - a.rate,
   )
 
-  const ranks = competitionRanks(sorted, (s) => `${s.player.totalScore}|${s.rate}`)
+  const ranks = competitionRanks(sorted, (s) => s.player.totalScore)
 
   return sorted.map((s, i) => ({
     player: s.player,
@@ -79,9 +81,6 @@ export function getStandings(game: GameState): Standing[] {
     contractRate: s.rate,
     contractsWon: s.won,
     roundsPlayed: s.played,
-    scoreTied: sorted.some(
-      (o) => o.player.id !== s.player.id && o.player.totalScore === s.player.totalScore,
-    ),
-    rankShared: ranks.filter((r) => r === ranks[i]).length > 1,
+    tied: ranks.filter((r) => r === ranks[i]).length > 1,
   }))
 }
