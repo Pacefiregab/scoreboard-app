@@ -11,18 +11,37 @@ export function Scoreboard({ game }: Props) {
   const standings = getStandings(game)
   const currentRound = game.rounds.at(-1)
 
+  // Bets only exist once the admin has validated them, so their presence marks
+  // the moment this total becomes public. The rules forbid the announced total
+  // from equalling the card count, so it is always over or under — never level.
+  const announced = currentRound?.bets.length
+    ? currentRound.bets.reduce((sum, b) => sum + b.announced, 0)
+    : null
+  const gap = announced !== null && currentRound ? announced - currentRound.cardCount : 0
+
   return (
     <Card>
       <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
           <CardTitle className="text-base">Classement</CardTitle>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Badge variant="outline">
               {game.phase === 'ASCENDING' ? '↑ Montée' : '↓ Descente'}
             </Badge>
             {currentRound && (
               <Badge variant="secondary">
                 Manche {currentRound.number} · {currentRound.cardCount} carte{currentRound.cardCount > 1 ? 's' : ''}
+              </Badge>
+            )}
+            {announced !== null && currentRound && (
+              <Badge
+                variant="outline"
+                className={gap > 0
+                  ? 'border-orange-300 text-orange-700 dark:border-orange-800 dark:text-orange-400'
+                  : 'border-blue-300 text-blue-700 dark:border-blue-800 dark:text-blue-400'}
+                title={`${announced} plis annoncés pour ${currentRound.cardCount} carte${currentRound.cardCount > 1 ? 's' : ''} — ${gap > 0 ? 'sur-enchère' : 'sous-enchère'}`}
+              >
+                {announced} pli{announced > 1 ? 's' : ''} annoncé{announced > 1 ? 's' : ''} · {gap > 0 ? `+${gap}` : gap}
               </Badge>
             )}
           </div>
