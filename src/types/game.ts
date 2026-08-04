@@ -8,7 +8,19 @@ export interface PlayerState {
   order: number
   active: boolean
   initialScore: number
+  /** Round scores minus penalties — the number shown in the standings. */
   totalScore: number
+  /** Points lost to penalties, positive. */
+  penaltyPoints: number
+}
+
+export interface PenaltyState {
+  id: string
+  playerId: string
+  /** Points deducted, positive. */
+  points: number
+  reason: string | null
+  createdAt: string
 }
 
 export interface BetState {
@@ -56,4 +68,5 @@ export interface GameState {
   rules: GameRules
   players: PlayerState[]
   rounds: RoundState[]
+  penalties: PenaltyState[]
 }

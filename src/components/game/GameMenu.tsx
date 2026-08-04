@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { ManagePlayersDialog } from './ManagePlayersDialog'
+import { PenaltiesDialog } from './PenaltiesDialog'
 import { QRCodeSVG } from 'qrcode.react'
 import {
   Menu,
@@ -18,6 +19,7 @@ import {
   X,
   Share2,
   Check,
+  MinusCircle,
 } from 'lucide-react'
 
 interface Props {
@@ -29,6 +31,7 @@ export function GameMenu({ game, onAction }: Props) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [managePlayersOpen, setManagePlayersOpen] = useState(false)
+  const [penaltiesOpen, setPenaltiesOpen] = useState(false)
   const [cardCountValue, setCardCountValue] = useState<string>('')
   const [loading, setLoading] = useState<string | null>(null)
   const [cancelConfirm, setCancelConfirm] = useState(false)
@@ -186,6 +189,20 @@ export function GameMenu({ game, onAction }: Props) {
               Gérer les joueurs
             </button>
 
+            {/* Penalties — only when the rule is on */}
+            {game.rules.penalties && (
+              <button
+                onClick={() => closeAndOpen(() => setPenaltiesOpen(true))}
+                className="flex items-center gap-3 px-1 py-3 text-sm hover:bg-muted rounded-lg transition-colors"
+              >
+                <MinusCircle size={16} className="text-muted-foreground" />
+                Pénalités
+                <span className="ml-auto text-xs text-muted-foreground">
+                  −{game.rules.penaltyPoints} pts
+                </span>
+              </button>
+            )}
+
             {/* Switch to descending */}
             {canSwitchPhase && (
               <button
@@ -257,6 +274,13 @@ export function GameMenu({ game, onAction }: Props) {
         game={game}
         open={managePlayersOpen}
         onClose={() => setManagePlayersOpen(false)}
+        onDone={onAction}
+      />
+
+      <PenaltiesDialog
+        game={game}
+        open={penaltiesOpen}
+        onClose={() => setPenaltiesOpen(false)}
         onDone={onAction}
       />
     </>

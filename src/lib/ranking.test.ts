@@ -76,7 +76,9 @@ function makeGame(
     rules: { bonusX2: false, penalties: false, penaltyPoints: 10 },
     players: players.map((p, i) => ({
       id: p.id, name: p.id, order: i, active: true, initialScore: 0, totalScore: p.score,
+      penaltyPoints: 0,
     })),
+    penalties: [],
     rounds: Array.from({ length: roundCount }, (_, r) => ({
       id: `r${r}`, number: r + 1, cardCount: 1, status: 'DONE' as const, constrainedPlayerId: null,
       bets: players

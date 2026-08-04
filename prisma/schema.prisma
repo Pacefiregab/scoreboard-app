@@ -21,6 +21,7 @@ model Game {
   rulePenaltyPoints Int     @default(10)
   players     Player[]
   rounds      Round[]
+  penalties   Penalty[]
 }
 
 model Player {
@@ -34,6 +35,22 @@ model Player {
   createdAt   DateTime @default(now())
   bets        Bet[]
   scores      RoundScore[]
+  penalties   Penalty[]
+}
+
+/// Admin-applied deduction, kept outside the round chain so it can be given at
+/// any moment. `points` is positive and snapshots the game's unit price.
+model Penalty {
+  id        String   @id @default(cuid())
+  gameId    String
+  game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  playerId  String
+  player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  points    Int
+  reason    String?
+  createdAt DateTime @default(now())
+
+  @@index([gameId])
 }
 
 model Round {

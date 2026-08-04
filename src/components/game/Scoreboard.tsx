@@ -76,6 +76,14 @@ export function Scoreboard({ game }: Props) {
 
                 {bet?.bonusX2 && <BonusX2Badge />}
 
+                {player.penaltyPoints > 0 && (
+                  <Tooltip label={`${player.penaltyPoints} points retirés en pénalités`}>
+                    <span className="shrink-0 text-[10px] font-mono font-medium text-destructive">
+                      −{player.penaltyPoints}
+                    </span>
+                  </Tooltip>
+                )}
+
                 {bet && (
                   <span className="text-xs text-muted-foreground">
                     parie {bet.announced}

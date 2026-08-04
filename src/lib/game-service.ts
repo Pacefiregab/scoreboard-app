@@ -14,6 +14,7 @@ const gameInclude = {
     orderBy: { number: 'asc' as const },
     include: { bets: true, scores: true },
   },
+  penalties: { orderBy: { createdAt: 'asc' as const } },
 } satisfies Prisma.GameInclude
 
 type GameWithRelations = Prisma.GameGetPayload<{ include: typeof gameInclude }>
@@ -27,13 +28,19 @@ function buildGameState(game: GameWithRelations, isAdmin: boolean): GameState {
       .filter((s) => s.playerId === p.id)
       .at(-1)
 
+    // Penalties live outside the round chain, so they are applied on read.
+    const penaltyPoints = game.penalties
+      .filter((pen) => pen.playerId === p.id)
+      .reduce((sum, pen) => sum + pen.points, 0)
+
     return {
       id: p.id,
       name: p.name,
       order: p.order,
       active: p.active,
       initialScore: p.initialScore,
-      totalScore: lastScore ? lastScore.totalPoints : p.initialScore,
+      totalScore: (lastScore ? lastScore.totalPoints : p.initialScore) - penaltyPoints,
+      penaltyPoints,
     }
   })
 
@@ -70,6 +77,13 @@ function buildGameState(game: GameWithRelations, isAdmin: boolean): GameState {
     },
     players,
     rounds,
+    penalties: game.penalties.map((p) => ({
+      id: p.id,
+      playerId: p.playerId,
+      points: p.points,
+      reason: p.reason,
+      createdAt: p.createdAt.toISOString(),
+    })),
   }
 }
 
@@ -462,6 +476,49 @@ export async function reorderPlayers(
   )
 }
 
+// ─── Penalties ───────────────────────────────────────────────────────────────
+
+/**
+ * Deducts points from a player. `count` penalties are applied at the game's
+ * configured unit price, snapshotted on each row so later config changes never
+ * rewrite past deductions.
+ */
+export async function addPenalty(
+  adminToken: string,
+  playerId: string,
+  count: number,
+  reason?: string,
+): Promise<void> {
+  const game = await findActiveGameByAdminToken(adminToken)
+  if (!game.rulePenalties) {
+    throw new ApiError('Les pénalités ne sont pas activées sur cette partie', 422)
+  }
+  if (!Number.isInteger(count) || count < 1) {
+    throw new ApiError('Le nombre de pénalités doit être un entier positif', 400)
+  }
+  if (!game.players.some((p) => p.id === playerId)) {
+    throw new ApiError('Player not found', 404)
+  }
+
+  const trimmed = reason?.trim()
+  await prisma.penalty.createMany({
+    data: Array.from({ length: count }, () => ({
+      gameId: game.id,
+      playerId,
+      points: game.rulePenaltyPoints,
+      reason: trimmed ? trimmed : null,
+    })),
+  })
+}
+
+/** Cancels a single penalty — the undo for a misclick. */
+export async function deletePenalty(adminToken: string, penaltyId: string): Promise<void> {
+  const game = await findActiveGameByAdminToken(adminToken)
+  const penalty = game.penalties.find((p) => p.id === penaltyId)
+  if (!penalty) throw new ApiError('Penalty not found', 404)
+  await prisma.penalty.delete({ where: { id: penaltyId } })
+}
+
 // ─── Admin: player management ────────────────────────────────────────────────
 
 export interface PlayerEntry {
@@ -538,6 +595,7 @@ export async function getPlayerStats(options?: { finishedSince?: Date }): Promis
         orderBy: { number: 'asc' as const },
         include: { bets: true, scores: true },
       },
+      penalties: true,
     },
   })
 
@@ -556,11 +614,15 @@ export async function getPlayerStats(options?: { finishedSince?: Date }): Promis
   }>()
 
   for (const game of games) {
-    // Compute final score per player in this game
+    // Final score per player, penalties deducted like buildGameState does — the
+    // stats must agree with the standings the players actually saw.
     const finalScores = new Map<string, number>()
     for (const player of game.players) {
       const last = game.rounds.flatMap((r) => r.scores).filter((s) => s.playerId === player.id).at(-1)
-      finalScores.set(player.id, last ? last.totalPoints : player.initialScore)
+      const penalties = game.penalties
+        .filter((pen) => pen.playerId === player.id)
+        .reduce((sum, pen) => sum + pen.points, 0)
+      finalScores.set(player.id, (last ? last.totalPoints : player.initialScore) - penalties)
     }
 
     // Rank on score alone, matching getStandings(): equal scores share a rank,
