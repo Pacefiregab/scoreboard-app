@@ -23,16 +23,6 @@ export async function POST(req: Request) {
       bonusX2?: unknown
       penalties?: unknown
       penaltyPoints?: unknown
-      deckCount?: unknown
-    }
-
-    let deckCount: number | undefined
-    if (raw.deckCount !== undefined) {
-      const n = Number(raw.deckCount)
-      if (n !== 1 && n !== 2) {
-        return Response.json({ error: 'deckCount must be 1 or 2' }, { status: 400 })
-      }
-      deckCount = n
     }
 
     // Stored positive; the deduction happens when a penalty is applied.
@@ -52,7 +42,6 @@ export async function POST(req: Request) {
       bonusX2: raw.bonusX2 === true,
       penalties: raw.penalties === true,
       ...(penaltyPoints !== undefined ? { penaltyPoints } : {}),
-      ...(deckCount !== undefined ? { deckCount } : {}),
     }
 
     const game = await createGame(players as string[], rules)

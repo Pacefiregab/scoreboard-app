@@ -4,7 +4,6 @@ import {
   isLastBetValid,
   nextCardCount,
   isGameOver,
-  maxCardCount,
 } from './enculette'
 
 describe('computeRoundScores', () => {
@@ -108,30 +107,6 @@ describe('nextCardCount', () => {
 
   it('decrements in descending phase', () => {
     expect(nextCardCount({ current: 3, phase: 'DESCENDING' })).toBe(2)
-  })
-})
-
-describe('maxCardCount', () => {
-  it('splits one deck between the players', () => {
-    expect(maxCardCount({ deckCount: 1, playerCount: 4 })).toBe(13) // 52 / 4
-  })
-
-  it('doubles the peak with two decks', () => {
-    expect(maxCardCount({ deckCount: 2, playerCount: 4 })).toBe(26) // 104 / 4
-  })
-
-  it('rounds down when the deck does not divide evenly', () => {
-    expect(maxCardCount({ deckCount: 1, playerCount: 6 })).toBe(8) // 52 / 6 = 8.67
-    expect(maxCardCount({ deckCount: 2, playerCount: 6 })).toBe(17) // 104 / 6 = 17.33
-  })
-
-  it('shrinks as players join', () => {
-    expect(maxCardCount({ deckCount: 1, playerCount: 2 })).toBe(26)
-    expect(maxCardCount({ deckCount: 1, playerCount: 8 })).toBe(6)
-  })
-
-  it('returns 0 without players rather than dividing by zero', () => {
-    expect(maxCardCount({ deckCount: 1, playerCount: 0 })).toBe(0)
   })
 })
 

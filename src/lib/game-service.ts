@@ -74,7 +74,6 @@ function buildGameState(game: GameWithRelations, isAdmin: boolean): GameState {
       bonusX2: game.ruleBonusX2,
       penalties: game.rulePenalties,
       penaltyPoints: game.rulePenaltyPoints,
-      deckCount: game.deckCount,
     },
     players,
     rounds,
@@ -178,7 +177,6 @@ export async function createGame(
       ruleBonusX2: rules?.bonusX2 ?? false,
       rulePenalties: rules?.penalties ?? false,
       ...(rules?.penaltyPoints !== undefined ? { rulePenaltyPoints: rules.penaltyPoints } : {}),
-      ...(rules?.deckCount !== undefined ? { deckCount: rules.deckCount } : {}),
       players: {
         create: playerNames.map((name, index) => ({
           name: name.trim(),

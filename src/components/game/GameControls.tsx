@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { GameState } from '@/types/game'
-import { nextCardCount, isGameOver, maxCardCount } from '@/lib/enculette'
+import { nextCardCount, isGameOver } from '@/lib/enculette'
 import { Button } from '@/components/ui/button'
 import { ChevronsDown, ChevronsUp } from 'lucide-react'
 
@@ -34,14 +34,6 @@ export function GameControls({ game, onAction }: Props) {
     ? nextCardCount({ current: lastRound.cardCount, phase: targetPhase })
     : 0
   const canSwitchPhase = Boolean(lastRound) && cardsAfterSwitch >= 1
-
-  // Past this the deck runs out, so the descent becomes the primary button.
-  // Only an emphasis swap: climbing further stays available and allowed.
-  const peak = maxCardCount({
-    deckCount: game.rules.deckCount,
-    playerCount: game.players.filter((p) => p.active).length,
-  })
-  const atPeak = game.phase === 'ASCENDING' && peak > 0 && nextCards > peak
 
   async function handleNextRound() {
     setLoading('next')
@@ -83,12 +75,7 @@ export function GameControls({ game, onAction }: Props) {
     <div className="space-y-2">
       {/* Hidden once the descent is over — the game can only end or turn around */}
       {!wouldEnd && (
-        <Button
-          onClick={handleNextRound}
-          disabled={loading !== null}
-          variant={atPeak ? 'outline' : 'default'}
-          className="w-full"
-        >
+        <Button onClick={handleNextRound} disabled={loading !== null} className="w-full">
           {loading === 'next'
             ? 'Chargement...'
             : isFirstStart
@@ -99,7 +86,7 @@ export function GameControls({ game, onAction }: Props) {
 
       {canSwitchPhase && (
         <Button
-          variant={atPeak || wouldEnd ? 'default' : 'outline'}
+          variant={wouldEnd ? 'default' : 'outline'}
           onClick={handleSwitchPhase}
           disabled={loading !== null}
           className="w-full gap-2"
