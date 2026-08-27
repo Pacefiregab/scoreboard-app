@@ -47,3 +47,18 @@ export function isGameOver(params: {
 }): boolean {
   return params.phase === 'DESCENDING' && params.cardCount === 0
 }
+
+export const CARDS_PER_DECK = 52
+
+/**
+ * Most cards that can be dealt to each player in a round — the peak the
+ * pyramid can reach before the deck runs out.
+ *
+ * Only a suggestion: the admin stays free to go past it (extra jokers, a third
+ * deck on the table…), so nothing enforces it server-side.
+ */
+export function maxCardCount(params: { deckCount: number; playerCount: number }): number {
+  const { deckCount, playerCount } = params
+  if (playerCount < 1) return 0
+  return Math.floor((CARDS_PER_DECK * deckCount) / playerCount)
+}

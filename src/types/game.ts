@@ -56,6 +56,8 @@ export interface GameRules {
   penalties: boolean
   /** Points removed per penalty, stored positive. Only meaningful with `penalties`. */
   penaltyPoints: number
+  /** Decks in play (1 or 2); caps the suggested peak of the pyramid. */
+  deckCount: number
 }
 
 export interface GameState {

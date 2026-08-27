@@ -34,7 +34,8 @@ PWA web de suivi de scores pour parties de cartes. Un hôte crée et gère la pa
 
 - [x] Structure pyramidale (1→N→1), l'hôte déclenche la descente et peut
       revenir en montée, y compris pendant les paris d'une manche
-- [x] Nombre de cartes non plafonné
+- [x] Nombre de paquets (1 ou 2) choisi à la création ; le sommet de la
+      pyramide est proposé en conséquence, sans être imposé
 - [x] Saisie des paris avec contrainte du dernier joueur (valeur interdite en temps réel)
 - [x] Rotation de la contrainte : M1→dernier joueur, M2→1er, M3→2e…
 - [x] Forçage manuel du joueur contraint (cadenas, réversible) — la rotation

@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { PlayerNameInput } from '@/components/PlayerNameInput'
 import { AppHeader } from '@/components/AppHeader'
-import { ChevronUp, ChevronDown, X, Plus, ChevronRight, Sparkles, MinusCircle, Check } from 'lucide-react'
+import { maxCardCount } from '@/lib/enculette'
+import { ChevronUp, ChevronDown, X, Plus, ChevronRight, Sparkles, MinusCircle, Check, Layers } from 'lucide-react'
 
 const RULES = [
   {
@@ -32,6 +33,7 @@ export default function NewGamePage() {
   const [rulesOpen, setRulesOpen] = useState(false)
   const [rules, setRules] = useState({ bonusX2: false, penalties: false })
   const [penaltyPoints, setPenaltyPoints] = useState('10')
+  const [deckCount, setDeckCount] = useState(1)
 
   const activeRules = RULES.filter((r) => rules[r.key])
   const penaltyValue = parseInt(penaltyPoints, 10)
@@ -72,6 +74,7 @@ export default function NewGamePage() {
   }
 
   const validPlayers = players.map((p) => p.trim()).filter(Boolean)
+  const peak = maxCardCount({ deckCount, playerCount: validPlayers.length })
   const canSubmit = validPlayers.length >= 2 && !loading && !penaltyInvalid
 
   async function handleSubmit() {
@@ -84,7 +87,11 @@ export default function NewGamePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           players: validPlayers,
-          rules: { ...rules, ...(rules.penalties ? { penaltyPoints: penaltyValue } : {}) },
+          rules: {
+            ...rules,
+            deckCount,
+            ...(rules.penalties ? { penaltyPoints: penaltyValue } : {}),
+          },
         }),
       })
       if (!res.ok) {
@@ -169,20 +176,47 @@ export default function NewGamePage() {
               />
               <span className="flex-1 text-left">Règles supplémentaires</span>
               <span className="text-xs text-muted-foreground">
-                {activeRules.length > 0
-                  ? activeRules
-                      .map((r) =>
-                        r.key === 'penalties' && !penaltyInvalid
-                          ? `${r.label} (−${penaltyValue})`
-                          : r.label,
-                      )
-                      .join(' · ')
-                  : 'Aucune'}
+                {[
+                  `${deckCount} paquet${deckCount > 1 ? 's' : ''}`,
+                  ...activeRules.map((r) =>
+                    r.key === 'penalties' && !penaltyInvalid
+                      ? `${r.label} (−${penaltyValue})`
+                      : r.label,
+                  ),
+                ].join(' · ')}
               </span>
             </button>
 
             {rulesOpen && (
               <div className="border-t p-2 space-y-1">
+                {/* Decks — caps the peak of the pyramid */}
+                <div className="flex items-center gap-2 rounded-lg px-2 py-2">
+                  <Layers size={13} className="text-muted-foreground shrink-0" />
+                  <span className="flex-1 text-sm font-medium">Paquets de cartes</span>
+                  <div className="flex gap-1">
+                    {[1, 2].map((n) => (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => setDeckCount(n)}
+                        aria-pressed={deckCount === n}
+                        className={`h-8 w-9 rounded-lg border text-sm font-medium transition-colors ${
+                          deckCount === n
+                            ? 'border-primary bg-primary text-primary-foreground'
+                            : 'border-input text-muted-foreground hover:bg-muted'
+                        }`}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <p className="px-2 pb-1 text-xs text-muted-foreground">
+                  {validPlayers.length >= 2
+                    ? `Avec ${validPlayers.length} joueurs, la montée pourra aller jusqu’à ${peak} carte${peak > 1 ? 's' : ''} par joueur.`
+                    : 'Détermine jusqu’où la montée peut aller selon le nombre de joueurs.'}
+                </p>
+
                 {RULES.map(({ key, icon: Icon, label, desc }) => {
                   const checked = rules[key]
                   return (

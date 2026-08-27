@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { GameState } from '@/types/game'
-import { nextCardCount, isGameOver } from '@/lib/enculette'
+import { nextCardCount, isGameOver, maxCardCount } from '@/lib/enculette'
 import { Button } from '@/components/ui/button'
 import { ChevronsDown, ChevronsUp } from 'lucide-react'
 
@@ -34,6 +34,14 @@ export function GameControls({ game, onAction }: Props) {
     ? nextCardCount({ current: lastRound.cardCount, phase: targetPhase })
     : 0
   const canSwitchPhase = Boolean(lastRound) && cardsAfterSwitch >= 1
+
+  // The deck runs out at this point. Suggested, never enforced: the admin may
+  // keep climbing if the table is playing with something else on top.
+  const peak = maxCardCount({
+    deckCount: game.rules.deckCount,
+    playerCount: game.players.filter((p) => p.active).length,
+  })
+  const atPeak = game.phase === 'ASCENDING' && peak > 0 && nextCards > peak
 
   async function handleNextRound() {
     setLoading('next')
@@ -69,21 +77,37 @@ export function GameControls({ game, onAction }: Props) {
     }
   }
 
-  if (!lastRoundDone || wouldEnd) return null
+  if (!lastRoundDone) return null
 
   return (
     <div className="space-y-2">
-      <Button onClick={handleNextRound} disabled={loading !== null} className="w-full">
-        {loading === 'next'
-          ? 'Chargement...'
-          : isFirstStart
-            ? 'Commencer la partie'
-            : `Manche suivante (${nextCards} carte${nextCards > 1 ? 's' : ''})`}
-      </Button>
+      {atPeak && (
+        <p className="rounded-lg border border-dashed px-3 py-2 text-xs text-muted-foreground">
+          Le paquet est épuisé : {peak} carte{peak > 1 ? 's' : ''} par joueur au maximum
+          {game.rules.deckCount > 1 ? ` avec ${game.rules.deckCount} paquets` : ''}. Passer en
+          descente ?
+        </p>
+      )}
+
+      {/* Hidden once the descent is over — the game can only end or turn around */}
+      {!wouldEnd && (
+        <Button
+          onClick={handleNextRound}
+          disabled={loading !== null}
+          variant={atPeak ? 'outline' : 'default'}
+          className="w-full"
+        >
+          {loading === 'next'
+            ? 'Chargement...'
+            : isFirstStart
+              ? 'Commencer la partie'
+              : `Manche suivante (${nextCards} carte${nextCards > 1 ? 's' : ''})`}
+        </Button>
+      )}
 
       {canSwitchPhase && (
         <Button
-          variant="outline"
+          variant={atPeak || wouldEnd ? 'default' : 'outline'}
           onClick={handleSwitchPhase}
           disabled={loading !== null}
           className="w-full gap-2"
