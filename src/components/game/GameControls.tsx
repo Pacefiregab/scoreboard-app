@@ -35,8 +35,8 @@ export function GameControls({ game, onAction }: Props) {
     : 0
   const canSwitchPhase = Boolean(lastRound) && cardsAfterSwitch >= 1
 
-  // The deck runs out at this point. Suggested, never enforced: the admin may
-  // keep climbing if the table is playing with something else on top.
+  // Past this the deck runs out, so the descent becomes the primary button.
+  // Only an emphasis swap: climbing further stays available and allowed.
   const peak = maxCardCount({
     deckCount: game.rules.deckCount,
     playerCount: game.players.filter((p) => p.active).length,
@@ -81,14 +81,6 @@ export function GameControls({ game, onAction }: Props) {
 
   return (
     <div className="space-y-2">
-      {atPeak && (
-        <p className="rounded-lg border border-dashed px-3 py-2 text-xs text-muted-foreground">
-          Le paquet est épuisé : {peak} carte{peak > 1 ? 's' : ''} par joueur au maximum
-          {game.rules.deckCount > 1 ? ` avec ${game.rules.deckCount} paquets` : ''}. Passer en
-          descente ?
-        </p>
-      )}
-
       {/* Hidden once the descent is over — the game can only end or turn around */}
       {!wouldEnd && (
         <Button
