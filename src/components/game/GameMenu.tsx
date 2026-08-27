@@ -13,6 +13,7 @@ import { QRCodeSVG } from 'qrcode.react'
 import {
   Menu,
   ChevronsDown,
+  ChevronsUp,
   Flag,
   Users,
   Hash,
@@ -42,8 +43,11 @@ export function GameMenu({ game, onAction }: Props) {
   const inBetting = lastRound?.status === 'BETTING'
   const inPlaying = lastRound?.status === 'PLAYING'
   const hasScores = game.rounds.some((r) => r.status === 'DONE')
-  const canSwitchPhase =
-    game.phase === 'ASCENDING' && (!lastRound || lastRound.status === 'DONE')
+
+  // Both directions, and still available while the round is only taking bets —
+  // validating them starts the round and locks its card count.
+  const targetPhase = game.phase === 'ASCENDING' ? 'DESCENDING' : 'ASCENDING'
+  const canSwitchPhase = Boolean(lastRound) && !inPlaying
 
   async function post(path: string, label: string, body?: object) {
     setLoading(label)
@@ -203,15 +207,20 @@ export function GameMenu({ game, onAction }: Props) {
               </button>
             )}
 
-            {/* Switch to descending */}
+            {/* Turn the pyramid around, either way */}
             {canSwitchPhase && (
               <button
-                onClick={() => post('descend', 'descend')}
-                disabled={loading === 'descend'}
+                onClick={() => post('phase', 'phase', { phase: targetPhase })}
+                disabled={loading === 'phase'}
                 className="flex items-center gap-3 px-1 py-3 text-sm hover:bg-muted rounded-lg transition-colors"
               >
-                <ChevronsDown size={16} className="text-muted-foreground" />
-                Commencer la descente
+                {targetPhase === 'DESCENDING'
+                  ? <ChevronsDown size={16} className="text-muted-foreground" />
+                  : <ChevronsUp size={16} className="text-muted-foreground" />}
+                {targetPhase === 'DESCENDING' ? 'Commencer la descente' : 'Repasser en montée'}
+                {inBetting && (
+                  <span className="ml-auto text-xs text-muted-foreground">manche en cours</span>
+                )}
               </button>
             )}
 

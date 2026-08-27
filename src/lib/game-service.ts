@@ -399,16 +399,52 @@ export async function submitResults(
   ])
 }
 
-export async function switchToDescending(adminToken: string): Promise<void> {
+/**
+ * Switches between the ascending and descending halves, both ways.
+ *
+ * Allowed while the current round is still taking bets: the admin is then
+ * saying "this round belongs to the other half", so its card count is
+ * recomputed from the previous round under the new phase — starting round 6
+ * with 6 cards and switching to descending turns it into 4. Once the bets are
+ * validated the round is under way and only the next one can change.
+ */
+export async function switchPhase(adminToken: string, phase: 'ASCENDING' | 'DESCENDING'): Promise<void> {
   const game = await findActiveGameByAdminToken(adminToken)
-  if (game.phase === 'DESCENDING') throw new ApiError('Game is already in descending phase', 409)
-
-  const lastRound = game.rounds.at(-1)
-  if (lastRound && lastRound.status !== 'DONE') {
-    throw new ApiError('Current round must be finished before switching phase', 409)
+  if (game.phase === phase) {
+    throw new ApiError(
+      phase === 'DESCENDING' ? 'La partie est déjà en descente' : 'La partie est déjà en montée',
+      409,
+    )
   }
 
-  await prisma.game.update({ where: { id: game.id }, data: { phase: 'DESCENDING' } })
+  const lastRound = game.rounds.at(-1)
+
+  if (lastRound && lastRound.status === 'PLAYING') {
+    throw new ApiError(
+      'Impossible de changer de sens une fois les paris validés — annulez-les d’abord',
+      409,
+    )
+  }
+
+  // Round still taking bets: it becomes a round of the new half.
+  if (lastRound && lastRound.status === 'BETTING') {
+    const previous = game.rounds.at(-2)
+    const cardCount = previous
+      ? nextCardCount({ current: previous.cardCount, phase })
+      : lastRound.cardCount
+
+    if (cardCount < 1) {
+      throw new ApiError('La descente n’est pas possible depuis cette manche', 422)
+    }
+
+    await prisma.$transaction([
+      prisma.game.update({ where: { id: game.id }, data: { phase } }),
+      prisma.round.update({ where: { id: lastRound.id }, data: { cardCount } }),
+    ])
+    return
+  }
+
+  await prisma.game.update({ where: { id: game.id }, data: { phase } })
 }
 
 export async function finishGame(adminToken: string): Promise<void> {
