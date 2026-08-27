@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Game" ADD COLUMN     "deckCount" INTEGER NOT NULL DEFAULT 1;

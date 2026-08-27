@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { PlayerNameInput } from '@/components/PlayerNameInput'
 import { AppHeader } from '@/components/AppHeader'
+import { maxCardCount } from '@/lib/enculette'
 import { ChevronUp, ChevronDown, X, Plus, ChevronRight, Sparkles, MinusCircle, Check } from 'lucide-react'
 
 const RULES = [
@@ -32,6 +33,8 @@ export default function NewGamePage() {
   const [rulesOpen, setRulesOpen] = useState(false)
   const [rules, setRules] = useState({ bonusX2: false, penalties: false })
   const [penaltyPoints, setPenaltyPoints] = useState('10')
+  // No default: the admin has to state how many decks are on the table
+  const [deckCount, setDeckCount] = useState<number | null>(null)
 
   const activeRules = RULES.filter((r) => rules[r.key])
   const penaltyValue = parseInt(penaltyPoints, 10)
@@ -72,7 +75,9 @@ export default function NewGamePage() {
   }
 
   const validPlayers = players.map((p) => p.trim()).filter(Boolean)
-  const canSubmit = validPlayers.length >= 2 && !loading && !penaltyInvalid
+  const peak = maxCardCount({ deckCount: deckCount ?? 0, playerCount: validPlayers.length })
+  const canSubmit =
+    validPlayers.length >= 2 && deckCount !== null && !loading && !penaltyInvalid
 
   async function handleSubmit() {
     if (!canSubmit) return
@@ -84,7 +89,11 @@ export default function NewGamePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           players: validPlayers,
-          rules: { ...rules, ...(rules.penalties ? { penaltyPoints: penaltyValue } : {}) },
+          rules: {
+            ...rules,
+            deckCount,
+            ...(rules.penalties ? { penaltyPoints: penaltyValue } : {}),
+          },
         }),
       })
       if (!res.ok) {
@@ -154,6 +163,35 @@ export default function NewGamePage() {
             <Plus size={14} />
             Ajouter un joueur
           </Button>
+
+          {/* Required: with the player count it sets the cards-per-round ceiling */}
+          <div className="space-y-1.5">
+            <p className="text-sm text-muted-foreground">Paquets de cartes en jeu</p>
+            <div className="flex items-center gap-2">
+              {[1, 2].map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setDeckCount(n)}
+                  aria-pressed={deckCount === n}
+                  className={`h-9 flex-1 rounded-lg border text-sm font-medium transition-colors ${
+                    deckCount === n
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : 'border-input text-muted-foreground hover:bg-muted'
+                  }`}
+                >
+                  {n} paquet{n > 1 ? 's' : ''}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {deckCount === null
+                ? 'À renseigner pour créer la partie.'
+                : validPlayers.length >= 2
+                  ? `${peak} carte${peak > 1 ? 's' : ''} par joueur au maximum avec ${validPlayers.length} joueurs.`
+                  : 'Le maximum de cartes s’affichera selon le nombre de joueurs.'}
+            </p>
+          </div>
 
           {/* Optional rules */}
           <div className="rounded-lg border">

@@ -56,6 +56,8 @@ export interface GameRules {
   penalties: boolean
   /** Points removed per penalty, stored positive. Only meaningful with `penalties`. */
   penaltyPoints: number
+  /** Decks in play (1 or 2); with the player count it caps the cards per round. */
+  deckCount: number
 }
 
 export interface GameState {

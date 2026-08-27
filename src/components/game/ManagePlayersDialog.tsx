@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import type { GameState, PlayerState } from '@/types/game'
 import { getNextRoundNumber, getUpcomingConstrainedPlayerId } from '@/lib/constrained-player'
+import { maxCardCount } from '@/lib/enculette'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -28,6 +29,7 @@ export function ManagePlayersDialog({ game, open, onClose, onDone }: Props) {
   const [adding, setAdding] = useState(false)
   const [newName, setNewName] = useState('')
   const [newScore, setNewScore] = useState('0')
+  const [decks, setDecks] = useState(game.rules.deckCount)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -47,13 +49,14 @@ export function ManagePlayersDialog({ game, open, onClose, onDone }: Props) {
           .map((p) => ({ id: p.id, name: p.name, active: p.active, initialScore: p.initialScore })),
       )
       setConstraint(lastRound?.constrainedPlayerId ?? null)
+      setDecks(game.rules.deckCount)
       setAdding(false)
       setNewName('')
       setNewScore('0')
       setError(null)
     }
     wasOpen.current = open
-  }, [open, game.players, lastRound?.constrainedPlayerId])
+  }, [open, game.players, game.rules.deckCount, lastRound?.constrainedPlayerId])
 
   const activeRows = rows.filter((r) => r.active)
   // Preview against the pending list so the table shows what saving will produce.
@@ -154,6 +157,19 @@ export function ManagePlayersDialog({ game, open, onClose, onDone }: Props) {
             setError(data.error ?? 'Erreur lors du changement de contrainte')
             return
           }
+        }
+      }
+
+      if (decks !== game.rules.deckCount) {
+        const res = await fetch(`/api/games/${game.adminToken}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ deckCount: decks }),
+        })
+        if (!res.ok) {
+          const data = await res.json() as { error?: string }
+          setError(data.error ?? 'Erreur lors du changement de paquets')
+          return
         }
       }
 
@@ -272,6 +288,30 @@ export function ManagePlayersDialog({ game, open, onClose, onDone }: Props) {
               </div>
             )
           })}
+        </div>
+
+        {/* Decks — here because it and the player list together set the ceiling */}
+        <div className="flex items-center gap-2 rounded-lg border px-3 py-2">
+          <span className="flex-1 text-sm">Paquets en jeu</span>
+          <span className="text-xs text-muted-foreground">
+            max {maxCardCount({ deckCount: decks, playerCount: activeRows.length })} cartes
+          </span>
+          <div className="flex gap-1">
+            {[1, 2].map((n) => (
+              <button
+                key={n}
+                onClick={() => setDecks(n)}
+                aria-pressed={decks === n}
+                className={`h-7 w-8 rounded-md border text-xs font-medium transition-colors ${
+                  decks === n
+                    ? 'border-primary bg-primary text-primary-foreground'
+                    : 'border-input text-muted-foreground hover:bg-muted'
+                }`}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Add a player */}

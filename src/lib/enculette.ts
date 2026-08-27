@@ -47,3 +47,18 @@ export function isGameOver(params: {
 }): boolean {
   return params.phase === 'DESCENDING' && params.cardCount === 0
 }
+
+export const CARDS_PER_DECK = 52
+
+/**
+ * Most cards that can be dealt to each player in a round, given the decks in
+ * play and how many players share them.
+ *
+ * Informative only — nothing stops the admin from dealing past it, so this is
+ * never enforced server-side.
+ */
+export function maxCardCount(params: { deckCount: number; playerCount: number }): number {
+  const { deckCount, playerCount } = params
+  if (playerCount < 1) return 0
+  return Math.floor((CARDS_PER_DECK * deckCount) / playerCount)
+}

@@ -1,5 +1,6 @@
 import type { GameState } from '@/types/game'
 import { getStandings } from '@/lib/ranking'
+import { maxCardCount } from '@/lib/enculette'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip } from '@/components/ui/tooltip'
@@ -12,6 +13,9 @@ interface Props {
 export function Scoreboard({ game }: Props) {
   const standings = getStandings(game)
   const currentRound = game.rounds.at(-1)
+
+  const activeCount = game.players.filter((p) => p.active).length
+  const peak = maxCardCount({ deckCount: game.rules.deckCount, playerCount: activeCount })
 
   // Bets only exist once the admin has validated them, so their presence marks
   // the moment this total becomes public. The rules forbid the announced total
@@ -30,11 +34,18 @@ export function Scoreboard({ game }: Props) {
             <Badge variant="outline">
               {game.phase === 'ASCENDING' ? '↑ Montée' : '↓ Descente'}
             </Badge>
-            {currentRound && (
+            {/* Cards dealt out of the ceiling the decks allow — folded into the
+                round badge so the ceiling is always visible without a 4th badge */}
+            <Tooltip
+              side="bottom"
+              label={`${peak} carte${peak > 1 ? 's' : ''} par joueur au maximum avec ${game.rules.deckCount} paquet${game.rules.deckCount > 1 ? 's' : ''} pour ${activeCount} joueur${activeCount > 1 ? 's' : ''}`}
+            >
               <Badge variant="secondary">
-                Manche {currentRound.number} · {currentRound.cardCount} carte{currentRound.cardCount > 1 ? 's' : ''}
+                {currentRound
+                  ? `Manche ${currentRound.number} · ${currentRound.cardCount}/${peak} cartes`
+                  : `max ${peak} carte${peak > 1 ? 's' : ''}`}
               </Badge>
-            )}
+            </Tooltip>
             {announced !== null && currentRound && (
               <Tooltip
                 side="bottom"

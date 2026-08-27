@@ -74,6 +74,7 @@ function buildGameState(game: GameWithRelations, isAdmin: boolean): GameState {
       bonusX2: game.ruleBonusX2,
       penalties: game.rulePenalties,
       penaltyPoints: game.rulePenaltyPoints,
+      deckCount: game.deckCount,
     },
     players,
     rounds,
@@ -177,6 +178,7 @@ export async function createGame(
       ruleBonusX2: rules?.bonusX2 ?? false,
       rulePenalties: rules?.penalties ?? false,
       ...(rules?.penaltyPoints !== undefined ? { rulePenaltyPoints: rules.penaltyPoints } : {}),
+      ...(rules?.deckCount !== undefined ? { deckCount: rules.deckCount } : {}),
       players: {
         create: playerNames.map((name, index) => ({
           name: name.trim(),
@@ -510,6 +512,15 @@ export async function reorderPlayers(
       prisma.player.update({ where: { id: e.id }, data: { order: e.order, active: e.active } }),
     ),
   )
+}
+
+/** Decks in play — editable mid-game, like the player list. */
+export async function updateDeckCount(adminToken: string, deckCount: number): Promise<void> {
+  if (deckCount !== 1 && deckCount !== 2) {
+    throw new ApiError('Le nombre de paquets doit être 1 ou 2', 400)
+  }
+  const game = await findActiveGameByAdminToken(adminToken)
+  await prisma.game.update({ where: { id: game.id }, data: { deckCount } })
 }
 
 // ─── Penalties ───────────────────────────────────────────────────────────────

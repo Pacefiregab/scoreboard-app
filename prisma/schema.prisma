@@ -19,6 +19,8 @@ model Game {
   rulePenalties     Boolean @default(false)
   /// Points deducted per penalty, stored positive
   rulePenaltyPoints Int     @default(10)
+  /// Decks in play (1 or 2); with the player count it caps the cards per round
+  deckCount         Int     @default(1)
   players     Player[]
   rounds      Round[]
   penalties   Penalty[]
