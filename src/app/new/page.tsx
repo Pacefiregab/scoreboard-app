@@ -111,7 +111,7 @@ export default function NewGamePage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="flex-1 flex flex-col">
       <AppHeader backHref="/" />
     <main className="flex-1 flex flex-col items-center justify-center p-6">
       <Card className="w-full max-w-md">

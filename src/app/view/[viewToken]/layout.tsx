@@ -14,7 +14,7 @@ export default function ViewTokenLayout({ children }: { children: React.ReactNod
 
   return (
     <GameContext.Provider value={{ game, loading, error, refresh }}>
-      <div className="min-h-screen flex flex-col">
+      <div className="flex-1 flex flex-col">
         <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="max-w-5xl mx-auto px-4 h-12 flex items-center gap-3">
             <Link

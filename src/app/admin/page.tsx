@@ -95,7 +95,7 @@ export default async function AdminPage({
   const headerProps = { currentSort: sort, currentOrder: order, rawParams }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="flex-1 flex flex-col">
       <AppHeader backHref="/" title="Admin">
         <AdminBurgerMenu currentTab={tab} />
       </AppHeader>

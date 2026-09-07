@@ -21,7 +21,7 @@ export default async function SummaryPage({ params }: { params: Promise<{ token:
   const winners = standings.filter((s) => s.rank === 1)
 
   return (
-    <main className="min-h-screen p-4 max-w-lg mx-auto space-y-4 pb-8">
+    <main className="flex-1 w-full p-4 max-w-lg mx-auto space-y-4 pb-8">
       <WinnerEffect names={winners.map((w) => w.player.name)} />
 
       <Card>

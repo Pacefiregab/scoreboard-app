@@ -31,7 +31,7 @@ export default async function StatsPage() {
 
   if (finishedCount === 0) {
     return (
-      <div className="min-h-screen flex flex-col">
+      <div className="flex-1 flex flex-col">
         <AppHeader backHref="/" title="Statistiques" />
         <main className="flex-1 flex flex-col items-center justify-center p-6 gap-4">
           <div className="text-4xl">📊</div>
@@ -45,7 +45,7 @@ export default async function StatsPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="flex-1 flex flex-col">
       <AppHeader backHref="/" title="Statistiques" />
       <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-8 pb-16 space-y-8">
         <div>
