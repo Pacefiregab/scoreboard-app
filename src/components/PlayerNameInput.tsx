@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Input } from '@/components/ui/input'
+import { foldForSearch } from '@/lib/text'
 
 interface Props {
   value: string
@@ -33,16 +34,20 @@ export function PlayerNameInput({
       .catch(() => {})
   }, [])
 
-  const excludeLower = exclude.map((e) => e.trim().toLowerCase()).filter(Boolean)
-  const valueLower = value.trim().toLowerCase()
+  // Folded on both sides so accents and case never hide a match, and so a
+  // player already in the game is excluded whichever spelling was used.
+  const excludeFolded = exclude.map(foldForSearch).filter(Boolean)
+  const query = foldForSearch(value)
 
   const filtered = allNames
-    .filter(
-      (n) =>
-        !excludeLower.includes(n.toLowerCase()) &&
-        n.toLowerCase() !== valueLower &&
-        (valueLower === '' || n.toLowerCase().includes(valueLower)),
-    )
+    .filter((n) => {
+      const folded = foldForSearch(n)
+      return (
+        !excludeFolded.includes(folded) &&
+        folded !== query &&
+        (query === '' || folded.includes(query))
+      )
+    })
     .slice(0, 8)
 
   const select = useCallback(
