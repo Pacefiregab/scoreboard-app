@@ -78,6 +78,7 @@ function buildGameState(game: GameWithRelations, isAdmin: boolean): GameState {
       penalties: game.rulePenalties,
       penaltyPoints: game.rulePenaltyPoints,
       deckCount: game.deckCount,
+      unranked: game.unranked,
     },
     players,
     rounds,
@@ -182,6 +183,7 @@ export async function createGame(
       rulePenalties: rules?.penalties ?? false,
       ...(rules?.penaltyPoints !== undefined ? { rulePenaltyPoints: rules.penaltyPoints } : {}),
       ...(rules?.deckCount !== undefined ? { deckCount: rules.deckCount } : {}),
+      unranked: rules?.unranked ?? false,
       players: {
         create: playerNames.map((name, index) => ({
           name: name.trim(),
@@ -703,7 +705,12 @@ export interface PlayerEntry {
 }
 
 export async function getDistinctPlayerNames(): Promise<PlayerEntry[]> {
-  const rows = await prisma.player.findMany({ select: { name: true } })
+  // Les parties amicales n'alimentent pas le répertoire des joueurs : c'est
+  // l'autre moitié de la demande, ne pas polluer la saisie avec des invités.
+  const rows = await prisma.player.findMany({
+    where: { game: { unranked: false } },
+    select: { name: true },
+  })
   const map = new Map<string, { name: string; count: number }>()
   for (const { name } of rows) {
     const key = name.trim().toLowerCase()
@@ -730,7 +737,12 @@ export async function deletePlayersByName(name: string): Promise<number> {
 // ─── Known player names (for autocomplete) ───────────────────────────────────
 
 export async function getKnownPlayerNames(): Promise<string[]> {
-  const rows = await prisma.player.findMany({ select: { name: true } })
+  // Les parties amicales n'alimentent pas le répertoire des joueurs : c'est
+  // l'autre moitié de la demande, ne pas polluer la saisie avec des invités.
+  const rows = await prisma.player.findMany({
+    where: { game: { unranked: false } },
+    select: { name: true },
+  })
   const freq = new Map<string, { name: string; count: number }>()
   for (const { name } of rows) {
     const key = name.trim().toLowerCase()
@@ -762,6 +774,13 @@ export interface DateWindow {
   finishedBefore?: Date
 }
 
+/**
+ * Filtre de base de tout ce qui agrège : une partie amicale n'entre dans aucun
+ * classement, aucun décompte, aucun historique. Elle reste consultable par son
+ * lien et visible depuis la page admin.
+ */
+const RANKED_FINISHED = { status: 'FINISHED', unranked: false } as const
+
 function windowWhere(window?: DateWindow) {
   if (!window?.finishedSince && !window?.finishedBefore) return {}
   return {
@@ -776,7 +795,7 @@ export async function listSeasons(): Promise<SeasonSummary[]> {
   const [seasons, games] = await Promise.all([
     prisma.season.findMany({ orderBy: { startsAt: 'desc' } }),
     prisma.game.findMany({
-      where: { status: 'FINISHED' },
+      where: RANKED_FINISHED,
       select: { finishedAt: true, createdAt: true },
     }),
   ])
@@ -908,7 +927,7 @@ export async function deleteSeason(id: string): Promise<void> {
 export async function generateDefaultSeasons(): Promise<{ created: string[]; skipped: number }> {
   const [first, existing] = await Promise.all([
     prisma.game.findFirst({
-      where: { status: 'FINISHED' },
+      where: RANKED_FINISHED,
       orderBy: { createdAt: 'asc' },
       select: { finishedAt: true, createdAt: true },
     }),
@@ -955,7 +974,7 @@ export interface FinishedGameSummary {
  */
 export async function listFinishedGames(window?: DateWindow): Promise<FinishedGameSummary[]> {
   const games = await prisma.game.findMany({
-    where: { status: 'FINISHED', ...windowWhere(window) },
+    where: { ...RANKED_FINISHED, ...windowWhere(window) },
     include: {
       players: { orderBy: { order: 'asc' } },
       rounds: {
@@ -1012,7 +1031,7 @@ export interface PlayerStat {
 
 export async function getPlayerStats(window?: DateWindow): Promise<PlayerStat[]> {
   const games = await prisma.game.findMany({
-    where: { status: 'FINISHED', ...windowWhere(window) },
+    where: { ...RANKED_FINISHED, ...windowWhere(window) },
     include: {
       players: true,
       rounds: {

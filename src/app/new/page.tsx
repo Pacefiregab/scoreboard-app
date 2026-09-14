@@ -8,9 +8,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { PlayerNameInput } from '@/components/PlayerNameInput'
 import { AppHeader } from '@/components/AppHeader'
 import { maxCardCount } from '@/lib/enculette'
-import { ChevronUp, ChevronDown, X, Plus, ChevronRight, Sparkles, MinusCircle, Check } from 'lucide-react'
+import { ChevronUp, ChevronDown, X, Plus, ChevronRight, Sparkles, MinusCircle, Check, EyeOff } from 'lucide-react'
 
 const RULES = [
+  {
+    key: 'unranked' as const,
+    icon: EyeOff,
+    label: 'Partie amicale',
+    desc: 'Hors classement : elle n’apparaît ni dans les statistiques ni dans l’historique, et les noms saisis ne rejoignent pas le répertoire des joueurs. Elle reste consultable par son lien.',
+  },
   {
     key: 'bonusX2' as const,
     icon: Sparkles,
@@ -31,7 +37,7 @@ export default function NewGamePage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [rulesOpen, setRulesOpen] = useState(false)
-  const [rules, setRules] = useState({ bonusX2: false, penalties: false })
+  const [rules, setRules] = useState({ unranked: false, bonusX2: false, penalties: false })
   const [penaltyPoints, setPenaltyPoints] = useState('10')
   // No default: the admin has to state how many decks are on the table
   const [deckCount, setDeckCount] = useState<number | null>(null)

@@ -14,6 +14,12 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-09-19',
+    items: [
+      'Option « Partie amicale » à la création : la partie reste hors classement, n’apparaît pas dans les statistiques ni l’historique, et les noms saisis ne rejoignent pas le répertoire des joueurs.',
+    ],
+  },
+  {
     date: '2026-09-18',
     items: [
       'L’hôte peut corriger une manche déjà terminée : paris, plis et bonus ×2. Les totaux des manches suivantes se recalculent tout seuls.',

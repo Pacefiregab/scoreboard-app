@@ -58,6 +58,11 @@ export interface GameRules {
   penaltyPoints: number
   /** Decks in play (1 or 2); with the player count it caps the cards per round. */
   deckCount: number
+  /**
+   * Partie amicale : hors classement, absente de l'historique et des
+   * statistiques, et ses joueurs n'entrent pas dans le répertoire des noms.
+   */
+  unranked: boolean
 }
 
 export interface GameState {

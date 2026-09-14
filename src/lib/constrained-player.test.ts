@@ -15,7 +15,8 @@ function round(number: number, status: RoundState['status'], constrainedPlayerId
 function game(rounds: ReturnType<typeof round>[]): GameState {
   return {
     id: 'g', adminToken: 't', viewToken: 'v', status: 'ACTIVE', phase: 'ASCENDING',
-    isAdmin: true, rules: { bonusX2: false, penalties: false, penaltyPoints: 10, deckCount: 1 },
+    isAdmin: true,
+    rules: { bonusX2: false, penalties: false, penaltyPoints: 10, deckCount: 1, unranked: false },
     players: [], rounds: rounds as RoundState[], penalties: [],
   }
 }

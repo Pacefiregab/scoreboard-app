@@ -31,6 +31,17 @@ export function Scoreboard({ game }: Props) {
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <CardTitle className="text-base">Classement</CardTitle>
           <div className="flex gap-2 flex-wrap">
+            {game.rules.unranked && (
+              <Tooltip
+                side="bottom"
+                label="Partie amicale : hors classement, absente des statistiques et de l’historique"
+              >
+                <Badge variant="outline" className="border-dashed">
+                  Hors classement
+                </Badge>
+              </Tooltip>
+            )}
+
             <Badge variant="outline">
               {game.phase === 'ASCENDING' ? '↑ Montée' : '↓ Descente'}
             </Badge>

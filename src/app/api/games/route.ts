@@ -24,6 +24,7 @@ export async function POST(req: Request) {
       penalties?: unknown
       penaltyPoints?: unknown
       deckCount?: unknown
+      unranked?: unknown
     }
 
     let deckCount: number | undefined
@@ -53,6 +54,7 @@ export async function POST(req: Request) {
       penalties: raw.penalties === true,
       ...(penaltyPoints !== undefined ? { penaltyPoints } : {}),
       ...(deckCount !== undefined ? { deckCount } : {}),
+      unranked: raw.unranked === true,
     }
 
     const game = await createGame(players as string[], rules)
