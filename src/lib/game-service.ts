@@ -2,6 +2,9 @@ import { Prisma } from '@prisma/client'
 import { prisma } from './prisma'
 import { computeRoundScores, isLastBetValid, isGameOver, nextCardCount } from './enculette'
 import { resolveConstrainedPlayerId, nextConstrainedPlayerId } from './constrained-player'
+import {
+  seasonStatus, rangesOverlap, calendarSeasonsBetween, type SeasonStatus,
+} from './season'
 import { ApiError } from './api-helpers'
 import type { GameState, GameRules, RoundState } from '@/types/game'
 import { DEFAULT_CONFIG, type ScoringConfig } from './scoring'
@@ -614,6 +617,177 @@ export async function getKnownPlayerNames(): Promise<string[]> {
     .map((v) => v.name)
 }
 
+// ─── Seasons ─────────────────────────────────────────────────────────────────
+
+export interface SeasonSummary {
+  id: string
+  name: string
+  startsAt: Date
+  /** Exclue — la saison suivante démarre à cet instant. */
+  endsAt: Date
+  status: SeasonStatus
+  gameCount: number
+}
+
+/** Fenêtre de dates appliquée aux statistiques et à l'historique. */
+export interface DateWindow {
+  finishedSince?: Date
+  /** Exclue, pour coller aux bornes de saison. */
+  finishedBefore?: Date
+}
+
+function windowWhere(window?: DateWindow) {
+  if (!window?.finishedSince && !window?.finishedBefore) return {}
+  return {
+    finishedAt: {
+      ...(window.finishedSince ? { gte: window.finishedSince } : {}),
+      ...(window.finishedBefore ? { lt: window.finishedBefore } : {}),
+    },
+  }
+}
+
+export async function listSeasons(): Promise<SeasonSummary[]> {
+  const [seasons, games] = await Promise.all([
+    prisma.season.findMany({ orderBy: { startsAt: 'desc' } }),
+    prisma.game.findMany({
+      where: { status: 'FINISHED' },
+      select: { finishedAt: true, createdAt: true },
+    }),
+  ])
+
+  // Bucketed in memory rather than one count query per season: the volumes are
+  // small and this keeps a single round trip.
+  const dates = games.map((g) => g.finishedAt ?? g.createdAt)
+
+  return seasons.map((s) => ({
+    id: s.id,
+    name: s.name,
+    startsAt: s.startsAt,
+    endsAt: s.endsAt,
+    status: seasonStatus(s),
+    gameCount: dates.filter((d) => d >= s.startsAt && d < s.endsAt).length,
+  }))
+}
+
+export async function getSeason(id: string) {
+  return prisma.season.findUnique({ where: { id } })
+}
+
+/**
+ * La saison qui contient la date du jour, s'il y en a une.
+ *
+ * Le nombre de jours restants est calculé ici et non à l'affichage : lire
+ * l'heure pendant le rendu d'un composant est une impureté que React proscrit.
+ */
+export async function getCurrentSeason(): Promise<
+  { id: string; name: string; startsAt: Date; endsAt: Date; daysLeft: number } | null
+> {
+  const now = new Date()
+  const season = await prisma.season.findFirst({
+    where: { startsAt: { lte: now }, endsAt: { gt: now } },
+    orderBy: { startsAt: 'desc' },
+  })
+  if (!season) return null
+
+  return {
+    id: season.id,
+    name: season.name,
+    startsAt: season.startsAt,
+    endsAt: season.endsAt,
+    daysLeft: Math.max(0, Math.ceil((season.endsAt.getTime() - now.getTime()) / 86_400_000)),
+  }
+}
+
+async function assertNoOverlap(range: { startsAt: Date; endsAt: Date }, ignoreId?: string) {
+  if (range.endsAt <= range.startsAt) {
+    throw new ApiError('La date de fin doit être postérieure à la date de début', 422)
+  }
+  const others = await prisma.season.findMany({
+    where: ignoreId ? { id: { not: ignoreId } } : {},
+  })
+  const clash = others.find((o) => rangesOverlap(range, o))
+  if (clash) {
+    throw new ApiError(`Cette période chevauche « ${clash.name} »`, 422)
+  }
+}
+
+export async function createSeason(name: string, startsAt: Date, endsAt: Date) {
+  const trimmed = name.trim()
+  if (!trimmed) throw new ApiError('Le nom de la saison est obligatoire', 400)
+  await assertNoOverlap({ startsAt, endsAt })
+  return prisma.season.create({ data: { name: trimmed, startsAt, endsAt } })
+}
+
+export async function updateSeason(
+  id: string,
+  data: { name?: string; startsAt?: Date; endsAt?: Date },
+) {
+  const season = await prisma.season.findUnique({ where: { id } })
+  if (!season) throw new ApiError('Saison introuvable', 404)
+
+  const next = {
+    startsAt: data.startsAt ?? season.startsAt,
+    endsAt: data.endsAt ?? season.endsAt,
+  }
+  await assertNoOverlap(next, id)
+
+  const name = data.name?.trim()
+  if (data.name !== undefined && !name) {
+    throw new ApiError('Le nom de la saison est obligatoire', 400)
+  }
+
+  return prisma.season.update({
+    where: { id },
+    data: { ...next, ...(name ? { name } : {}) },
+  })
+}
+
+export async function deleteSeason(id: string): Promise<void> {
+  const season = await prisma.season.findUnique({ where: { id } })
+  if (!season) throw new ApiError('Saison introuvable', 404)
+  // Rien à détacher : l'appartenance étant déduite des dates, supprimer une
+  // saison rend seulement ses parties « hors saison ».
+  await prisma.season.delete({ where: { id } })
+}
+
+/**
+ * Crée les saisons calendaires manquantes, de la première partie terminée à
+ * aujourd'hui. C'est le rattrapage de l'historique : aucune saison fictive à
+ * inventer, les parties passées rejoignent la saison réelle de leur date.
+ * Les périodes déjà couvertes sont ignorées plutôt que dupliquées.
+ */
+export async function generateDefaultSeasons(): Promise<{ created: string[]; skipped: number }> {
+  const [first, existing] = await Promise.all([
+    prisma.game.findFirst({
+      where: { status: 'FINISHED' },
+      orderBy: { createdAt: 'asc' },
+      select: { finishedAt: true, createdAt: true },
+    }),
+    prisma.season.findMany(),
+  ])
+
+  const now = new Date()
+  const from = first ? (first.finishedAt ?? first.createdAt) : now
+  const candidates = calendarSeasonsBetween(from, now)
+
+  const created: string[] = []
+  let skipped = 0
+
+  for (const candidate of candidates) {
+    if (existing.some((e) => rangesOverlap(candidate, e))) {
+      skipped++
+      continue
+    }
+    const season = await prisma.season.create({
+      data: { name: candidate.name, startsAt: candidate.startsAt, endsAt: candidate.endsAt },
+    })
+    existing.push(season)
+    created.push(candidate.name)
+  }
+
+  return { created, skipped }
+}
+
 // ─── Finished games history ──────────────────────────────────────────────────
 
 export interface FinishedGameSummary {
@@ -630,9 +804,9 @@ export interface FinishedGameSummary {
  * manches, pénalités déduites — pour que l'historique montre exactement ce que
  * les joueurs ont vu à l'écran.
  */
-export async function listFinishedGames(): Promise<FinishedGameSummary[]> {
+export async function listFinishedGames(window?: DateWindow): Promise<FinishedGameSummary[]> {
   const games = await prisma.game.findMany({
-    where: { status: 'FINISHED' },
+    where: { status: 'FINISHED', ...windowWhere(window) },
     include: {
       players: { orderBy: { order: 'asc' } },
       rounds: {
@@ -687,12 +861,9 @@ export interface PlayerStat {
   f1Points: number
 }
 
-export async function getPlayerStats(options?: { finishedSince?: Date }): Promise<PlayerStat[]> {
+export async function getPlayerStats(window?: DateWindow): Promise<PlayerStat[]> {
   const games = await prisma.game.findMany({
-    where: {
-      status: 'FINISHED',
-      ...(options?.finishedSince ? { finishedAt: { gte: options.finishedSince } } : {}),
-    },
+    where: { status: 'FINISHED', ...windowWhere(window) },
     include: {
       players: true,
       rounds: {

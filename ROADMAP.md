@@ -137,6 +137,8 @@ PWA web de suivi de scores pour parties de cartes. Un hôte crée et gère la pa
 - [x] Lien « Dernière partie » sur l'accueil (issue #11)
 - [x] Section statistiques découpée en vues, navigation par menu burger
 - [x] Nombre de lignes par page réglable : 10, 25, 50 ou tout (issue #12)
+- [x] Saisons calendaires de trois mois, classement filtrable par saison,
+      palmarès des champions et bandeau de saison en cours (issue #7)
 - [ ] Recherche/filtre dans la liste des parties
 
 ### 4.2 Statistiques avancées (optionnel)

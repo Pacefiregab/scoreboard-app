@@ -1,30 +1,50 @@
 import { findStatsView } from './views'
+import { SeasonPicker, type SeasonOption } from './SeasonPicker'
 
 interface Props {
   /** Route of the view being rendered, used to look up its title and icon. */
   href: string
-  /** Counts or context specific to the page, shown under the description. */
+  /** Replaces the view's default title, when the season changes its meaning. */
+  title?: string
+  description?: string
+  /** Counts or context specific to the page. */
   meta?: string
+  seasons?: SeasonOption[]
+  selectedSeason?: string
 }
 
 /**
  * Titre de la vue courante, répété dans le corps de la page : le menu étant
  * fermé la plupart du temps, l'en-tête seul ne suffit pas à situer l'onglet.
  */
-export function StatsPageHeader({ href, meta }: Props) {
+export function StatsPageHeader({
+  href,
+  title,
+  description,
+  meta,
+  seasons,
+  selectedSeason,
+}: Props) {
   const view = findStatsView(href)
   if (!view) return null
 
   const Icon = view.icon
 
   return (
-    <div className="space-y-1 border-b pb-4">
-      <h1 className="flex items-center gap-2 text-xl font-bold tracking-tight">
-        <Icon size={19} className="text-primary shrink-0" />
-        {view.label}
-      </h1>
-      <p className="text-sm text-muted-foreground">{view.description}</p>
-      {meta && <p className="text-xs text-muted-foreground/80">{meta}</p>}
+    <div className="space-y-2 border-b pb-4">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <h1 className="flex items-center gap-2 text-xl font-bold tracking-tight">
+          <Icon size={19} className="text-primary shrink-0" />
+          {title ?? view.label}
+        </h1>
+        {seasons && seasons.length > 0 && (
+          <SeasonPicker seasons={seasons} selected={selectedSeason ?? 'all'} />
+        )}
+      </div>
+      <div className="space-y-1">
+        <p className="text-sm text-muted-foreground">{description ?? view.description}</p>
+        {meta && <p className="text-xs text-muted-foreground/80">{meta}</p>}
+      </div>
     </div>
   )
 }

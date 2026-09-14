@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { STATS_VIEWS, findStatsView } from './views'
@@ -15,7 +15,13 @@ export function statsViewLabel(pathname: string): string {
 export function StatsNav() {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
+  const params = useSearchParams()
   const current = findStatsView(pathname)
+
+  // La saison choisie suit le changement de vue : passer du classement à
+  // l'historique ne doit pas repartir sur « toutes les saisons ».
+  const season = params.get('saison')
+  const withSeason = (href: string) => (season ? `${href}?saison=${season}` : href)
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -39,7 +45,7 @@ export function StatsNav() {
             return (
               <Link
                 key={href}
-                href={href}
+                href={withSeason(href)}
                 onClick={() => setOpen(false)}
                 aria-current={active ? 'page' : undefined}
                 className={`flex items-start gap-3 px-2 py-2.5 rounded-lg transition-colors ${

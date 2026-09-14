@@ -2,17 +2,24 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { JoinForm } from '@/components/JoinForm'
 import { AppHeader } from '@/components/AppHeader'
-import { listActiveGames, listFinishedGames } from '@/lib/game-service'
-import { Users, BarChart2, History } from 'lucide-react'
+import { listActiveGames, listFinishedGames, getCurrentSeason } from '@/lib/game-service'
+import { inclusiveEnd } from '@/lib/season'
+import { Users, BarChart2, History, CalendarRange } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
 export default async function HomePage() {
-  const [activeGames, finishedGames] = await Promise.all([
+  const [activeGames, finishedGames, season] = await Promise.all([
     listActiveGames(),
     listFinishedGames(),
+    getCurrentSeason(),
   ])
   const lastGame = finishedGames[0]
+
+  const seasonEnd = season
+    ? new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long' })
+        .format(inclusiveEnd(season.endsAt))
+    : ''
 
   return (
     <div className="flex-1 flex flex-col">
@@ -23,6 +30,19 @@ export default async function HomePage() {
           <h1 className="text-4xl font-bold tracking-tight">Scoreboard</h1>
           <p className="text-muted-foreground">Suivez vos parties de cartes</p>
         </div>
+
+        {season && (
+          <Link
+            href={`/stats?saison=${season.id}`}
+            className="inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-xs hover:bg-primary/15 transition-colors"
+          >
+            <CalendarRange size={13} className="text-primary shrink-0" />
+            <span className="font-medium">{season.name}</span>
+            <span className="text-muted-foreground">
+              jusqu’au {seasonEnd} · {season.daysLeft} jour{season.daysLeft !== 1 ? 's' : ''}
+            </span>
+          </Link>
+        )}
 
         <div className="flex flex-col items-center gap-4 w-full max-w-xs">
           <Link href="/new" className="w-full">

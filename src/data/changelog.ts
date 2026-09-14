@@ -14,6 +14,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-09-15',
+    items: [
+      'Les saisons arrivent : des périodes de trois mois calées sur le calendrier, avec un classement propre à chacune.',
+      'Un sélecteur de saison en haut des statistiques filtre le classement, le détail et l’historique.',
+      'Un palmarès liste le champion et le podium de chaque saison.',
+      'L’accueil affiche la saison en cours et le temps qu’il reste avant la suivante.',
+    ],
+  },
+  {
     date: '2026-09-14',
     items: [
       'L’historique des parties terminées est enfin consultable : chaque partie mène à son résumé complet.',

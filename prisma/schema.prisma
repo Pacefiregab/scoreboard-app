@@ -111,6 +111,20 @@ enum RoundStatus {
   DONE
 }
 
+/// Période de classement. L'appartenance d'une partie se déduit de sa date de
+/// fin : aucune colonne n'est ajoutée à Game, et corriger les bornes rebascule
+/// les parties concernées. `endsAt` est exclue, donc deux saisons consécutives
+/// partagent la même date pivot.
+model Season {
+  id        String   @id @default(cuid())
+  name      String
+  startsAt  DateTime
+  endsAt    DateTime
+  createdAt DateTime @default(now())
+
+  @@index([startsAt])
+}
+
 model Setting {
   key       String   @id
   value     String

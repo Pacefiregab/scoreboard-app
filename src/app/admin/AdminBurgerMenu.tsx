@@ -2,11 +2,12 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Menu, X, LayoutList, Users, Trophy } from 'lucide-react'
+import { Menu, X, LayoutList, Users, Trophy, CalendarRange } from 'lucide-react'
 
 const TABS = [
   { id: 'games', label: 'Parties', icon: LayoutList },
   { id: 'players', label: 'Joueurs', icon: Users },
+  { id: 'seasons', label: 'Saisons', icon: CalendarRange },
   { id: 'score', label: 'Classement', icon: Trophy },
 ] as const
 

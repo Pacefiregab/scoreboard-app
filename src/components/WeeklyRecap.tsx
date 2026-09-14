@@ -7,6 +7,8 @@ interface Props {
   stats: PlayerStat[]
   gamesCount: number
   scoringConfig: ScoringConfig
+  /** Message d'absence, adapté à la période couverte. */
+  emptyLabel?: string
 }
 
 function pct(n: number) {
@@ -40,11 +42,11 @@ function HighlightCard({ icon, label, value, detail }: {
 }
 
 /** The page header already names the view, so this renders the content only. */
-export function WeeklyRecap({ stats, gamesCount, scoringConfig }: Props) {
+export function WeeklyRecap({ stats, gamesCount, scoringConfig, emptyLabel }: Props) {
   if (gamesCount === 0 || stats.length === 0) {
     return (
       <div className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
-        Aucune partie terminée cette semaine — le récap apparaîtra après la première partie.
+        {emptyLabel ?? 'Aucune partie terminée cette semaine — le récap apparaîtra après la première partie.'}
       </div>
     )
   }

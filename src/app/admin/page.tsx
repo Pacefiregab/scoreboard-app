@@ -1,9 +1,11 @@
 import Link from 'next/link'
 import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
-import { listAllGamesAdmin, getDistinctPlayerNames, getScoringConfig, type AdminGameSummary } from '@/lib/game-service'
+import { listAllGamesAdmin, getDistinctPlayerNames, getScoringConfig, listSeasons, type AdminGameSummary } from '@/lib/game-service'
+import { inclusiveEnd } from '@/lib/season'
 import { Button } from '@/components/ui/button'
 import { DeleteGameButton } from './DeleteGameButton'
 import { PlayerManagement } from './PlayerManagement'
+import { SeasonManagement } from './SeasonManagement'
 import { ScoringSection } from './ScoringSection'
 import { AdminBurgerMenu } from './AdminBurgerMenu'
 import { AppHeader } from '@/components/AppHeader'
@@ -14,7 +16,7 @@ const PAGE_SIZE = 20
 
 type SortKey = 'players' | 'status' | 'rounds' | 'created' | 'activity'
 type SortOrder = 'asc' | 'desc'
-type Tab = 'games' | 'players' | 'score'
+type Tab = 'games' | 'players' | 'seasons' | 'score'
 
 function fmt(date: Date) {
   return new Intl.DateTimeFormat('fr-FR', {
@@ -80,11 +82,22 @@ export default async function AdminPage({
   const order = (sp.order ?? 'desc') as SortOrder
   const page = Math.max(1, parseInt(sp.page ?? '1', 10))
 
-  const [allGames, playerNames, scoringConfig] = await Promise.all([
+  const [allGames, playerNames, seasons, scoringConfig] = await Promise.all([
     tab === 'games' ? listAllGamesAdmin() : Promise.resolve([] as AdminGameSummary[]),
     tab === 'players' ? getDistinctPlayerNames() : Promise.resolve([] as Awaited<ReturnType<typeof getDistinctPlayerNames>>),
+    tab === 'seasons' ? listSeasons() : Promise.resolve([] as Awaited<ReturnType<typeof listSeasons>>),
     getScoringConfig(),
   ])
+
+  // La borne de fin est exclue en base ; l'admin saisit le dernier jour inclus.
+  const seasonRows = seasons.map((s) => ({
+    id: s.id,
+    name: s.name,
+    startsAt: s.startsAt.toISOString().slice(0, 10),
+    endsAt: inclusiveEnd(s.endsAt).toISOString().slice(0, 10),
+    status: s.status,
+    gameCount: s.gameCount,
+  }))
 
   const sorted = tab === 'games' ? sortGames(allGames, sort, order) : []
   const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
@@ -211,6 +224,21 @@ export default async function AdminPage({
         )}
 
         {/* ── Classement ── */}
+        {/* ── Saisons ── */}
+        {tab === 'seasons' && (
+          <>
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold">Saisons</h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                Une partie appartient à la saison qui contient sa date de fin. Corriger les
+                bornes d’une saison rebascule donc les parties concernées, sans rien modifier
+                dans les parties elles-mêmes.
+              </p>
+            </div>
+            <SeasonManagement seasons={seasonRows} />
+          </>
+        )}
+
         {tab === 'score' && (
           <>
             <div className="mb-6">

@@ -1,5 +1,6 @@
-import { getPlayerStats, getScoringConfig } from '@/lib/game-service'
-import { prisma } from '@/lib/prisma'
+import { getPlayerStats, getScoringConfig, listFinishedGames } from '@/lib/game-service'
+import { resolveSeasonFilter } from '@/lib/season-filter'
+import { inclusiveEnd } from '@/lib/season'
 import { WeeklyRecap } from '@/components/WeeklyRecap'
 import { StatsPageHeader } from '@/components/stats/StatsPageHeader'
 
@@ -14,27 +15,55 @@ function startOfWeek(now = new Date()): Date {
   return d
 }
 
-export default async function WeeklyPage() {
-  const weekStart = startOfWeek()
+const fmtDay = (d: Date) =>
+  new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long' }).format(d)
 
-  const [weeklyStats, weeklyCount, scoringConfig] = await Promise.all([
-    getPlayerStats({ finishedSince: weekStart }),
-    prisma.game.count({ where: { status: 'FINISHED', finishedAt: { gte: weekStart } } }),
+export default async function RecapPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string>>
+}) {
+  const sp = await searchParams
+  const season = await resolveSeasonFilter(sp.saison)
+
+  // Sans saison choisie, le récap porte sur la semaine en cours ; avec une
+  // saison, il couvre toute sa durée — même forme, autre fenêtre.
+  const weekStart = startOfWeek()
+  const window = season.window ?? { finishedSince: weekStart }
+
+  const [stats, scoringConfig, games] = await Promise.all([
+    getPlayerStats(window),
     getScoringConfig(),
+    listFinishedGames(window),
   ])
 
   const weekEnd = new Date(weekStart)
   weekEnd.setDate(weekEnd.getDate() + 6)
-  const day = (d: Date) =>
-    new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long' }).format(d)
+
+  const period = season.range
+    ? `Du ${fmtDay(season.range.startsAt)} au ${fmtDay(inclusiveEnd(season.range.endsAt))}`
+    : `Du ${fmtDay(weekStart)} au ${fmtDay(weekEnd)}`
 
   return (
     <div className="space-y-5">
       <StatsPageHeader
         href="/stats"
-        meta={`Du ${day(weekStart)} au ${day(weekEnd)} · ${weeklyCount} partie${weeklyCount !== 1 ? 's' : ''} terminée${weeklyCount !== 1 ? 's' : ''}`}
+        title={season.name ? `Récap · ${season.name}` : 'Récap de la semaine'}
+        description={
+          season.name
+            ? 'Champion, podium et records de la saison.'
+            : 'Ce qui s’est joué depuis lundi : joueur de la semaine, podium et records.'
+        }
+        meta={`${period} · ${games.length} partie${games.length !== 1 ? 's' : ''} terminée${games.length !== 1 ? 's' : ''}`}
+        seasons={season.seasons}
+        selectedSeason={season.selected}
       />
-      <WeeklyRecap stats={weeklyStats} gamesCount={weeklyCount} scoringConfig={scoringConfig} />
+      <WeeklyRecap
+        stats={stats}
+        gamesCount={games.length}
+        scoringConfig={scoringConfig}
+        emptyLabel={season.name ? `Aucune partie terminée pour ${season.name}.` : undefined}
+      />
     </div>
   )
 }

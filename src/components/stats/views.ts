@@ -1,4 +1,4 @@
-import { Trophy, TrendingUp, CalendarDays, History, type LucideIcon } from 'lucide-react'
+import { Trophy, TrendingUp, CalendarDays, History, Medal, type LucideIcon } from 'lucide-react'
 
 export interface StatsView {
   href: string
@@ -37,6 +37,12 @@ export const STATS_VIEWS: StatsView[] = [
     label: 'Historique des parties',
     description: 'Chaque partie terminée mène à son résumé complet.',
     icon: History,
+  },
+  {
+    href: '/stats/palmares',
+    label: 'Palmarès des saisons',
+    description: 'Le champion de chaque saison, et le podium qui l’accompagne.',
+    icon: Medal,
   },
 ]
 
