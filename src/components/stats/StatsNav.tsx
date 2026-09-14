@@ -5,31 +5,27 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
-import { Menu, Trophy, TrendingUp, CalendarDays, History, Check } from 'lucide-react'
-
-export const STATS_VIEWS = [
-  { href: '/stats', label: 'Classement général', icon: Trophy },
-  { href: '/stats/detail', label: 'Stats détaillées', icon: TrendingUp },
-  { href: '/stats/semaine', label: 'Récap de la semaine', icon: CalendarDays },
-  { href: '/stats/historique', label: 'Historique des parties', icon: History },
-] as const
+import { STATS_VIEWS, findStatsView } from './views'
+import { Menu, Check } from 'lucide-react'
 
 export function statsViewLabel(pathname: string): string {
-  // Longest match first, so /stats/detail never resolves to /stats.
-  const match = [...STATS_VIEWS]
-    .sort((a, b) => b.href.length - a.href.length)
-    .find((v) => pathname === v.href)
-  return match?.label ?? 'Statistiques'
+  return findStatsView(pathname)?.label ?? 'Statistiques'
 }
 
 export function StatsNav() {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
+  const current = findStatsView(pathname)
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger render={<Button variant="outline" size="icon" className="shrink-0 h-8 w-8" />}>
-        <Menu size={16} />
+      {/* The current view is named on the trigger, so the tab in use is
+          readable without opening the menu. */}
+      <SheetTrigger render={<Button variant="outline" size="sm" className="shrink-0 h-8 gap-1.5" />}>
+        <Menu size={15} />
+        <span className="hidden sm:inline text-xs font-normal">
+          {current?.label ?? 'Vues'}
+        </span>
       </SheetTrigger>
 
       <SheetContent side="bottom" className="rounded-t-2xl">
@@ -37,21 +33,29 @@ export function StatsNav() {
           <SheetTitle className="text-left">Statistiques</SheetTitle>
         </SheetHeader>
 
-        <div className="flex flex-col gap-1 pb-6">
-          {STATS_VIEWS.map(({ href, label, icon: Icon }) => {
+        <div className="flex flex-col gap-0.5 pb-6">
+          {STATS_VIEWS.map(({ href, label, description, icon: Icon }) => {
             const active = pathname === href
             return (
               <Link
                 key={href}
                 href={href}
                 onClick={() => setOpen(false)}
-                className={`flex items-center gap-3 px-1 py-3 text-sm rounded-lg transition-colors ${
-                  active ? 'text-foreground font-medium' : 'hover:bg-muted'
+                aria-current={active ? 'page' : undefined}
+                className={`flex items-start gap-3 px-2 py-2.5 rounded-lg transition-colors ${
+                  active ? 'bg-muted' : 'hover:bg-muted/50'
                 }`}
               >
-                <Icon size={16} className="text-muted-foreground" />
-                <span className="flex-1">{label}</span>
-                {active && <Check size={15} className="text-primary" />}
+                <Icon size={16} className={`mt-0.5 shrink-0 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
+                <span className="flex-1 min-w-0">
+                  <span className={`block text-sm ${active ? 'font-semibold' : 'font-medium'}`}>
+                    {label}
+                  </span>
+                  <span className="block text-xs text-muted-foreground mt-0.5">
+                    {description}
+                  </span>
+                </span>
+                {active && <Check size={15} className="text-primary shrink-0 mt-0.5" />}
               </Link>
             )
           })}

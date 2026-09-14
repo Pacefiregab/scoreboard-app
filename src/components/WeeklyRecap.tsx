@@ -1,17 +1,12 @@
 import type { PlayerStat } from '@/lib/game-service'
 import { rankByConfig, computeComposites, type ScoringConfig } from '@/lib/scoring'
 import { competitionRanks } from '@/lib/ranking'
-import { CalendarDays, Crown, Gamepad2, Star, Target } from 'lucide-react'
+import { Crown, Gamepad2, Star, Target } from 'lucide-react'
 
 interface Props {
   stats: PlayerStat[]
   gamesCount: number
   scoringConfig: ScoringConfig
-  weekStart: Date
-}
-
-function fmtDay(d: Date) {
-  return new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long' }).format(d)
 }
 
 function pct(n: number) {
@@ -44,27 +39,12 @@ function HighlightCard({ icon, label, value, detail }: {
   )
 }
 
-export function WeeklyRecap({ stats, gamesCount, scoringConfig, weekStart }: Props) {
-  const weekEnd = new Date(weekStart)
-  weekEnd.setDate(weekEnd.getDate() + 6)
-
-  const title = (
-    <h2 className="text-base font-semibold mb-3 flex items-center gap-2">
-      <CalendarDays size={16} className="text-primary" />
-      Récap de la semaine
-      <span className="text-xs font-normal text-muted-foreground ml-1">
-        du {fmtDay(weekStart)} au {fmtDay(weekEnd)}
-      </span>
-    </h2>
-  )
-
+/** The page header already names the view, so this renders the content only. */
+export function WeeklyRecap({ stats, gamesCount, scoringConfig }: Props) {
   if (gamesCount === 0 || stats.length === 0) {
     return (
-      <div>
-        {title}
-        <div className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
-          Aucune partie terminée cette semaine — le récap apparaîtra après la première partie.
-        </div>
+      <div className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
+        Aucune partie terminée cette semaine — le récap apparaîtra après la première partie.
       </div>
     )
   }
@@ -100,8 +80,6 @@ export function WeeklyRecap({ stats, gamesCount, scoringConfig, weekStart }: Pro
 
   return (
     <div>
-      {title}
-
       <div className="space-y-3">
         {/* Highlights */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
