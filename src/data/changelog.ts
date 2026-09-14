@@ -14,6 +14,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-09-14',
+    items: [
+      'L’historique des parties terminées est enfin consultable : chaque partie mène à son résumé complet.',
+      'Un lien « Dernière partie » sur l’accueil pour retrouver le résumé de la partie qui vient de se finir.',
+      'Les statistiques se parcourent par vues — classement, stats détaillées, récap de la semaine, historique — via le menu en haut à droite.',
+      'Le nombre de lignes par page se règle : 10, 25, 50 ou tout afficher.',
+    ],
+  },
+  {
     date: '2026-09-07',
     items: [
       'La recherche de joueurs ignore les accents : « Jerem » retrouve « Jérémie ».',

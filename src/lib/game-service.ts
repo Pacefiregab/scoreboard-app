@@ -614,6 +614,64 @@ export async function getKnownPlayerNames(): Promise<string[]> {
     .map((v) => v.name)
 }
 
+// ─── Finished games history ──────────────────────────────────────────────────
+
+export interface FinishedGameSummary {
+  /** Read-only token: the history links to the public summary. */
+  viewToken: string
+  finishedAt: Date
+  roundCount: number
+  players: { name: string; score: number; isWinner: boolean }[]
+}
+
+/**
+ * Parties terminées, de la plus récente à la plus ancienne. Les scores sont
+ * calculés comme dans `buildGameState` — dernier maillon de la chaîne de
+ * manches, pénalités déduites — pour que l'historique montre exactement ce que
+ * les joueurs ont vu à l'écran.
+ */
+export async function listFinishedGames(): Promise<FinishedGameSummary[]> {
+  const games = await prisma.game.findMany({
+    where: { status: 'FINISHED' },
+    include: {
+      players: { orderBy: { order: 'asc' } },
+      rounds: {
+        where: { status: 'DONE' },
+        orderBy: { number: 'asc' },
+        include: { scores: true },
+      },
+      penalties: true,
+    },
+  })
+
+  return games
+    .map((game) => {
+      const players = game.players.map((p) => {
+        const last = game.rounds.flatMap((r) => r.scores).filter((s) => s.playerId === p.id).at(-1)
+        const penalties = game.penalties
+          .filter((pen) => pen.playerId === p.id)
+          .reduce((sum, pen) => sum + pen.points, 0)
+        return {
+          name: p.name,
+          score: (last ? last.totalPoints : p.initialScore) - penalties,
+        }
+      })
+
+      const best = players.length > 0 ? Math.max(...players.map((p) => p.score)) : 0
+
+      return {
+        viewToken: game.viewToken,
+        // `finishedAt` was added later, so older games fall back to createdAt.
+        finishedAt: game.finishedAt ?? game.createdAt,
+        roundCount: game.rounds.length,
+        players: players
+          .map((p) => ({ ...p, isWinner: p.score === best }))
+          .sort((a, b) => b.score - a.score),
+      }
+    })
+    .sort((a, b) => b.finishedAt.getTime() - a.finishedAt.getTime())
+}
+
 // ─── Player stats ────────────────────────────────────────────────────────────
 
 export interface PlayerStat {

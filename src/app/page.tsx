@@ -2,13 +2,17 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { JoinForm } from '@/components/JoinForm'
 import { AppHeader } from '@/components/AppHeader'
-import { listActiveGames } from '@/lib/game-service'
-import { Users, BarChart2 } from 'lucide-react'
+import { listActiveGames, listFinishedGames } from '@/lib/game-service'
+import { Users, BarChart2, History } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
 export default async function HomePage() {
-  const activeGames = await listActiveGames()
+  const [activeGames, finishedGames] = await Promise.all([
+    listActiveGames(),
+    listFinishedGames(),
+  ])
+  const lastGame = finishedGames[0]
 
   return (
     <div className="flex-1 flex flex-col">
@@ -35,13 +39,25 @@ export default async function HomePage() {
 
           <JoinForm />
 
-          <Link
-            href="/stats"
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mt-1"
-          >
-            <BarChart2 size={14} />
-            Voir les statistiques
-          </Link>
+          <div className="flex flex-col items-center gap-2 mt-1">
+            <Link
+              href="/stats"
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <BarChart2 size={14} />
+              Voir les statistiques
+            </Link>
+
+            {lastGame && (
+              <Link
+                href={`/game/${lastGame.viewToken}/summary`}
+                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <History size={14} />
+                Dernière partie
+              </Link>
+            )}
+          </div>
         </div>
 
         {activeGames.length > 0 && (
