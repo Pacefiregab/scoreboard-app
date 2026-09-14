@@ -14,6 +14,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-09-16',
+    items: [
+      'Chacun peut désormais classer les joueurs selon la méthode de son choix, depuis les statistiques. Celle de l’hôte reste la méthode par défaut.',
+      'Le classement s’ouvre sur un podium des trois premiers.',
+    ],
+  },
+  {
     date: '2026-09-15',
     items: [
       'Les saisons arrivent : des périodes de trois mois calées sur le calendrier, avec un classement propre à chacune.',

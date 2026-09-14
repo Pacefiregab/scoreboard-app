@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import { listSeasons, getPlayerStats, getScoringConfig } from '@/lib/game-service'
+import { listSeasons, getPlayerStats } from '@/lib/game-service'
+import { resolveScoring } from '@/lib/scoring-choice'
 import { rankByConfig, computeComposites } from '@/lib/scoring'
 import { competitionRanks } from '@/lib/ranking'
 import { inclusiveEnd } from '@/lib/season'
@@ -25,8 +26,14 @@ function medal(rank: number) {
   return null
 }
 
-export default async function PalmaresPage() {
-  const [seasons, scoringConfig] = await Promise.all([listSeasons(), getScoringConfig()])
+export default async function PalmaresPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string>>
+}) {
+  const sp = await searchParams
+  const [seasons, scoring] = await Promise.all([listSeasons(), resolveScoring(sp.methode)])
+  const scoringConfig = scoring.config
 
   // Une passe de stats par saison : les volumes sont petits, et cela réutilise
   // exactement la méthode de classement configurée en admin.
@@ -59,6 +66,11 @@ export default async function PalmaresPage() {
       <StatsPageHeader
         href="/stats/palmares"
         meta={`${seasons.length} saison${seasons.length !== 1 ? 's' : ''} définie${seasons.length !== 1 ? 's' : ''}`}
+        method={
+          scoring.allowChoice
+            ? { selected: scoring.config.method, admin: scoring.adminMethod }
+            : undefined
+        }
       />
 
       {seasons.length === 0 ? (

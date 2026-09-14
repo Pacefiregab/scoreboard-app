@@ -1,5 +1,7 @@
 import { findStatsView } from './views'
 import { SeasonPicker, type SeasonOption } from './SeasonPicker'
+import { MethodPicker } from './MethodPicker'
+import type { ScoringMethod } from '@/lib/scoring'
 
 interface Props {
   /** Route of the view being rendered, used to look up its title and icon. */
@@ -11,6 +13,8 @@ interface Props {
   meta?: string
   seasons?: SeasonOption[]
   selectedSeason?: string
+  /** Renseigné seulement quand le choix de méthode est ouvert aux visiteurs. */
+  method?: { selected: ScoringMethod; admin: ScoringMethod }
 }
 
 /**
@@ -24,6 +28,7 @@ export function StatsPageHeader({
   meta,
   seasons,
   selectedSeason,
+  method,
 }: Props) {
   const view = findStatsView(href)
   if (!view) return null
@@ -37,9 +42,12 @@ export function StatsPageHeader({
           <Icon size={19} className="text-primary shrink-0" />
           {title ?? view.label}
         </h1>
-        {seasons && seasons.length > 0 && (
-          <SeasonPicker seasons={seasons} selected={selectedSeason ?? 'all'} />
-        )}
+        <div className="flex items-center gap-3 flex-wrap">
+          {method && <MethodPicker selected={method.selected} adminMethod={method.admin} />}
+          {seasons && seasons.length > 0 && (
+            <SeasonPicker seasons={seasons} selected={selectedSeason ?? 'all'} />
+          )}
+        </div>
       </div>
       <div className="space-y-1">
         <p className="text-sm text-muted-foreground">{description ?? view.description}</p>

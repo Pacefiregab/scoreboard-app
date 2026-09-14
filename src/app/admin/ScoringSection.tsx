@@ -12,6 +12,7 @@ interface Props {
 export function ScoringSection({ current }: Props) {
   const [method, setMethod] = useState<ScoringMethod>(current.method)
   const [weights, setWeights] = useState(current.weights)
+  const [allowPlayerChoice, setAllowPlayerChoice] = useState(current.allowPlayerChoice)
   const [isPending, startTransition] = useTransition()
   const [feedback, setFeedback] = useState<string | null>(null)
 
@@ -28,6 +29,7 @@ export function ScoringSection({ current }: Props) {
 
   const isDirty =
     method !== current.method ||
+    allowPlayerChoice !== current.allowPlayerChoice ||
     weights.wins !== current.weights.wins ||
     weights.score !== current.weights.score ||
     weights.contract !== current.weights.contract
@@ -35,7 +37,7 @@ export function ScoringSection({ current }: Props) {
   function handleSave() {
     if (method === 'A' && !weightsValid) return
     startTransition(async () => {
-      await saveScoringConfigAction({ method, weights })
+      await saveScoringConfigAction({ method, weights, allowPlayerChoice })
       setFeedback('Configuration sauvegardée — la page stats utilisera cette méthode.')
       setTimeout(() => setFeedback(null), 4000)
     })
@@ -119,6 +121,24 @@ export function ScoringSection({ current }: Props) {
           )}
         </div>
       )}
+
+      {/* Choix laissé aux visiteurs */}
+      <label className="flex items-start gap-3 rounded-xl border p-4 cursor-pointer hover:bg-muted/50 transition-colors">
+        <input
+          type="checkbox"
+          checked={allowPlayerChoice}
+          onChange={(e) => setAllowPlayerChoice(e.target.checked)}
+          className="mt-0.5 accent-primary"
+        />
+        <div>
+          <p className="text-sm font-medium">Laisser chacun choisir sa méthode</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Un sélecteur apparaît sur les statistiques, permettant à chaque visiteur de classer
+            comme il l’entend. La méthode ci-dessus reste celle par défaut, et les pondérations
+            restent les vôtres. Décocher fait disparaître le sélecteur.
+          </p>
+        </div>
+      </label>
 
       {feedback && (
         <p className="text-sm text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg px-3 py-2">

@@ -3,11 +3,19 @@ export type ScoringMethod = 'A' | 'B' | 'C'
 export interface ScoringConfig {
   method: ScoringMethod
   weights: { wins: number; score: number; contract: number }
+  /**
+   * Laisse chaque visiteur choisir sa propre méthode d'affichage, la méthode
+   * ci-dessus restant celle par défaut. Mettre à `false` depuis la page admin
+   * fait disparaître le sélecteur et ignorer le paramètre d'URL — c'est le
+   * seul interrupteur à actionner pour retirer la fonctionnalité.
+   */
+  allowPlayerChoice: boolean
 }
 
 export const DEFAULT_CONFIG: ScoringConfig = {
   method: 'B',
   weights: { wins: 0.4, score: 0.35, contract: 0.25 },
+  allowPlayerChoice: true,
 }
 
 export const METHOD_META: Record<ScoringMethod, { label: string; desc: string }> = {

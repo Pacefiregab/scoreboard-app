@@ -1,5 +1,6 @@
-import { getPlayerStats, getScoringConfig, listFinishedGames } from '@/lib/game-service'
+import { getPlayerStats, listFinishedGames } from '@/lib/game-service'
 import { resolveSeasonFilter } from '@/lib/season-filter'
+import { resolveScoring } from '@/lib/scoring-choice'
 import { inclusiveEnd } from '@/lib/season'
 import { WeeklyRecap } from '@/components/WeeklyRecap'
 import { StatsPageHeader } from '@/components/stats/StatsPageHeader'
@@ -24,16 +25,18 @@ export default async function RecapPage({
   searchParams: Promise<Record<string, string>>
 }) {
   const sp = await searchParams
-  const season = await resolveSeasonFilter(sp.saison)
+  const [season, scoring] = await Promise.all([
+    resolveSeasonFilter(sp.saison),
+    resolveScoring(sp.methode),
+  ])
 
   // Sans saison choisie, le récap porte sur la semaine en cours ; avec une
   // saison, il couvre toute sa durée — même forme, autre fenêtre.
   const weekStart = startOfWeek()
   const window = season.window ?? { finishedSince: weekStart }
 
-  const [stats, scoringConfig, games] = await Promise.all([
+  const [stats, games] = await Promise.all([
     getPlayerStats(window),
-    getScoringConfig(),
     listFinishedGames(window),
   ])
 
@@ -57,11 +60,16 @@ export default async function RecapPage({
         meta={`${period} · ${games.length} partie${games.length !== 1 ? 's' : ''} terminée${games.length !== 1 ? 's' : ''}`}
         seasons={season.seasons}
         selectedSeason={season.selected}
+        method={
+          scoring.allowChoice
+            ? { selected: scoring.config.method, admin: scoring.adminMethod }
+            : undefined
+        }
       />
       <WeeklyRecap
         stats={stats}
         gamesCount={games.length}
-        scoringConfig={scoringConfig}
+        scoringConfig={scoring.config}
         emptyLabel={season.name ? `Aucune partie terminée pour ${season.name}.` : undefined}
       />
     </div>

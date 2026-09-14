@@ -1,5 +1,6 @@
-import { getPlayerStats, getScoringConfig } from '@/lib/game-service'
+import { getPlayerStats } from '@/lib/game-service'
 import { resolveSeasonFilter } from '@/lib/season-filter'
+import { resolveScoring } from '@/lib/scoring-choice'
 import { RankingTable } from '@/components/stats/RankingTable'
 import { StatsEmpty } from '@/components/stats/StatsEmpty'
 import { StatsPageHeader } from '@/components/stats/StatsPageHeader'
@@ -14,11 +15,11 @@ export default async function RankingPage({
   searchParams: Promise<Record<string, string>>
 }) {
   const sp = await searchParams
-  const season = await resolveSeasonFilter(sp.saison)
-  const [stats, scoringConfig] = await Promise.all([
-    getPlayerStats(season.window),
-    getScoringConfig(),
+  const [season, scoring] = await Promise.all([
+    resolveSeasonFilter(sp.saison),
+    resolveScoring(sp.methode),
   ])
+  const stats = await getPlayerStats(season.window)
 
   const games = stats.reduce((sum, s) => sum + s.gamesPlayed, 0)
 
@@ -34,10 +35,15 @@ export default async function RankingPage({
         meta={`${stats.length} joueur${stats.length !== 1 ? 's' : ''} · ${games} participation${games !== 1 ? 's' : ''}`}
         seasons={season.seasons}
         selectedSeason={season.selected}
+        method={
+          scoring.allowChoice
+            ? { selected: scoring.config.method, admin: scoring.adminMethod }
+            : undefined
+        }
       />
       {stats.length === 0
         ? <StatsEmpty season={season.name} />
-        : <RankingTable stats={stats} scoringConfig={scoringConfig} />}
+        : <RankingTable stats={stats} scoringConfig={scoring.config} />}
     </div>
   )
 }

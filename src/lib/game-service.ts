@@ -998,7 +998,14 @@ export async function getScoringConfig(): Promise<ScoringConfig> {
   const setting = await prisma.setting.findUnique({ where: { key: 'scoringConfig' } })
   if (!setting) return DEFAULT_CONFIG
   try {
-    return JSON.parse(setting.value) as ScoringConfig
+    // Fusion avec les valeurs par défaut : une configuration enregistrée avant
+    // l'ajout d'un champ n'en a pas la clé, et se retrouverait avec `undefined`.
+    const stored = JSON.parse(setting.value) as Partial<ScoringConfig>
+    return {
+      ...DEFAULT_CONFIG,
+      ...stored,
+      weights: { ...DEFAULT_CONFIG.weights, ...stored.weights },
+    }
   } catch {
     return DEFAULT_CONFIG
   }

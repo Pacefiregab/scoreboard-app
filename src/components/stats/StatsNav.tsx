@@ -18,10 +18,14 @@ export function StatsNav() {
   const params = useSearchParams()
   const current = findStatsView(pathname)
 
-  // La saison choisie suit le changement de vue : passer du classement à
+  // Saison et méthode suivent le changement de vue : passer du classement à
   // l'historique ne doit pas repartir sur « toutes les saisons ».
-  const season = params.get('saison')
-  const withSeason = (href: string) => (season ? `${href}?saison=${season}` : href)
+  const kept = new URLSearchParams()
+  for (const key of ['saison', 'methode']) {
+    const value = params.get(key)
+    if (value) kept.set(key, value)
+  }
+  const withFilters = (href: string) => (kept.size > 0 ? `${href}?${kept}` : href)
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -45,7 +49,7 @@ export function StatsNav() {
             return (
               <Link
                 key={href}
-                href={withSeason(href)}
+                href={withFilters(href)}
                 onClick={() => setOpen(false)}
                 aria-current={active ? 'page' : undefined}
                 className={`flex items-start gap-3 px-2 py-2.5 rounded-lg transition-colors ${
