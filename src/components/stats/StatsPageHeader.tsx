@@ -1,5 +1,6 @@
 import { findStatsView } from './views'
 import { SeasonPicker, type SeasonOption } from './SeasonPicker'
+import { PeriodPicker } from './PeriodPicker'
 import { MethodPicker } from './MethodPicker'
 import type { ScoringMethod } from '@/lib/scoring'
 
@@ -13,6 +14,11 @@ interface Props {
   meta?: string
   seasons?: SeasonOption[]
   selectedSeason?: string
+  /**
+   * Sur le récap, le sélecteur porte sur la période et non sur un filtre :
+   * ne rien choisir y signifie « cette semaine », pas « toutes les parties ».
+   */
+  periodMode?: boolean
   /** Renseigné seulement quand le choix de méthode est ouvert aux visiteurs. */
   method?: { selected: ScoringMethod; admin: ScoringMethod }
 }
@@ -28,6 +34,7 @@ export function StatsPageHeader({
   meta,
   seasons,
   selectedSeason,
+  periodMode,
   method,
 }: Props) {
   const view = findStatsView(href)
@@ -44,9 +51,11 @@ export function StatsPageHeader({
         </h1>
         <div className="flex items-center gap-3 flex-wrap">
           {method && <MethodPicker selected={method.selected} adminMethod={method.admin} />}
-          {seasons && seasons.length > 0 && (
-            <SeasonPicker seasons={seasons} selected={selectedSeason ?? 'all'} />
-          )}
+          {periodMode
+            ? <PeriodPicker seasons={seasons ?? []} selected={selectedSeason ?? 'semaine'} />
+            : seasons && seasons.length > 0 && (
+                <SeasonPicker seasons={seasons} selected={selectedSeason ?? 'all'} />
+              )}
         </div>
       </div>
       <div className="space-y-1">

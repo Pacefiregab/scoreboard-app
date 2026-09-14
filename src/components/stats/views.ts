@@ -22,9 +22,12 @@ export const STATS_VIEWS: StatsView[] = [
     icon: Medal,
   },
   {
+    // Le libellé reste neutre : la vue couvre la semaine ou une saison, selon
+    // la période choisie. Annoncer « la semaine » ici mentait dès qu'une
+    // saison était sélectionnée.
     href: '/stats',
-    label: 'Récap de la semaine',
-    description: 'Ce qui s’est joué depuis lundi : joueur de la semaine, podium et records.',
+    label: 'Récap',
+    description: 'Champion, podium et records — sur la semaine en cours ou sur une saison.',
     icon: CalendarDays,
   },
   {

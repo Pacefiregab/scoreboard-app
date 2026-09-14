@@ -4,6 +4,7 @@ import { resolveScoring } from '@/lib/scoring-choice'
 import { inclusiveEnd } from '@/lib/season'
 import { WeeklyRecap } from '@/components/WeeklyRecap'
 import { StatsPageHeader } from '@/components/stats/StatsPageHeader'
+import { WEEK_PERIOD } from '@/components/stats/PeriodPicker'
 
 export const dynamic = 'force-dynamic'
 
@@ -54,12 +55,13 @@ export default async function RecapPage({
         title={season.name ? `Récap · ${season.name}` : 'Récap de la semaine'}
         description={
           season.name
-            ? 'Champion, podium et records de la saison.'
+            ? `Champion, podium et records de la saison ${season.name}.`
             : 'Ce qui s’est joué depuis lundi : joueur de la semaine, podium et records.'
         }
         meta={`${period} · ${games.length} partie${games.length !== 1 ? 's' : ''} terminée${games.length !== 1 ? 's' : ''}`}
         seasons={season.seasons}
-        selectedSeason={season.selected}
+        selectedSeason={season.selected === 'all' ? WEEK_PERIOD : season.selected}
+        periodMode
         method={
           scoring.allowChoice
             ? { selected: scoring.config.method, admin: scoring.adminMethod }
