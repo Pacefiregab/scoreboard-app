@@ -14,6 +14,12 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-09-18',
+    items: [
+      'L’hôte peut corriger une manche déjà terminée : paris, plis et bonus ×2. Les totaux des manches suivantes se recalculent tout seuls.',
+    ],
+  },
+  {
     date: '2026-09-17',
     items: [
       'La vue Récap couvre désormais la semaine, une saison, ou toutes les saisons d’un coup — au choix, via le sélecteur de période.',

@@ -51,6 +51,8 @@ PWA web de suivi de scores pour parties de cartes. Un hôte crée et gère la pa
 - [x] Preview en direct du joueur contraint pendant l'édition
 - [x] Modification du nombre de cartes pendant la phase de paris
 - [x] Détection automatique de fin de partie (retour à 0 carte en descente)
+- [x] Correction d'une manche terminée (paris, plis, bonus ×2) avec
+      reconstruction de la chaîne des totaux (issue #8)
 
 ### 1.4 Fin de partie & sauvegarde ✅
 

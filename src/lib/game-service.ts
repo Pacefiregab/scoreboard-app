@@ -405,6 +405,132 @@ export async function submitResults(
 }
 
 /**
+ * Corrige une manche déjà terminée : paris annoncés, plis réalisés, bonus ×2.
+ *
+ * Les totaux étant chaînés d'une manche à l'autre, modifier une manche passée
+ * fausserait toutes les suivantes. La chaîne est donc **entièrement
+ * reconstruite** depuis le score initial de chaque joueur, ce qui a deux
+ * vertus : l'opération est idempotente, et elle répare au passage une chaîne
+ * déjà incohérente — par exemple après une correction faite à la main en base.
+ *
+ * Les mêmes règles qu'à la saisie sont vérifiées : somme des plis égale au
+ * nombre de cartes, somme des paris différente, et un seul bonus ×2 par joueur
+ * sur l'ensemble de la partie.
+ */
+export async function amendRound(
+  adminToken: string,
+  roundId: string,
+  entries: { playerId: string; announced: number; actual: number; bonusX2?: boolean }[],
+): Promise<void> {
+  const game = await findActiveGameByAdminToken(adminToken)
+  const round = game.rounds.find((r) => r.id === roundId)
+
+  if (!round) throw new ApiError('Round not found', 404)
+  if (round.status !== 'DONE') {
+    throw new ApiError('Seule une manche terminée peut être corrigée', 409)
+  }
+
+  // La correction porte sur les joueurs qui ont réellement joué la manche :
+  // en ajouter ou en retirer changerait la nature de la manche.
+  const played = round.bets.map((b) => b.playerId)
+  const given = entries.map((e) => e.playerId)
+  if (played.length !== given.length || played.some((id) => !given.includes(id))) {
+    throw new ApiError('La correction doit porter sur les joueurs de la manche', 400)
+  }
+
+  const totalActual = entries.reduce((sum, e) => sum + e.actual, 0)
+  if (totalActual !== round.cardCount) {
+    throw new ApiError(
+      `La somme des plis (${totalActual}) doit être égale au nombre de cartes (${round.cardCount})`,
+      422,
+    )
+  }
+  if (entries.some((e) => e.actual < 0 || e.announced < 0)) {
+    throw new ApiError('Les paris et les plis doivent être positifs', 422)
+  }
+
+  const totalAnnounced = entries.reduce((sum, e) => sum + e.announced, 0)
+  if (totalAnnounced === round.cardCount) {
+    throw new ApiError(
+      `La somme des paris ne peut pas égaler le nombre de cartes (${round.cardCount})`,
+      422,
+    )
+  }
+
+  // Un bonus par joueur et par partie : on ignore la manche corrigée, dont les
+  // bonus sont précisément ceux qu'on réécrit.
+  const armed = entries.filter((e) => e.bonusX2)
+  if (armed.length > 0) {
+    if (!game.ruleBonusX2) {
+      throw new ApiError('Le bonus ×2 n’est pas activé sur cette partie', 422)
+    }
+    const spentElsewhere = new Set(
+      game.rounds
+        .filter((r) => r.id !== roundId)
+        .flatMap((r) => r.bets)
+        .filter((b) => b.bonusX2)
+        .map((b) => b.playerId),
+    )
+    const reused = armed.find((e) => spentElsewhere.has(e.playerId))
+    if (reused) {
+      const name = game.players.find((p) => p.id === reused.playerId)?.name ?? 'Ce joueur'
+      throw new ApiError(`${name} a déjà utilisé son bonus ×2 sur une autre manche`, 422)
+    }
+  }
+
+  // Manches terminées dans l'ordre, la manche corrigée portant ses nouvelles
+  // valeurs : c'est la base du recalcul de toute la chaîne.
+  const doneRounds = game.rounds
+    .filter((r) => r.status === 'DONE')
+    .sort((a, b) => a.number - b.number)
+
+  const running = new Map(game.players.map((p) => [p.id, p.initialScore]))
+  const rebuilt: { roundId: string; playerId: string; points: number; totalPoints: number }[] = []
+
+  for (const r of doneRounds) {
+    const bets = r.id === roundId
+      ? entries.map((e) => ({
+          playerId: e.playerId,
+          announced: e.announced,
+          actual: e.actual,
+          bonusX2: e.bonusX2 === true,
+        }))
+      : r.bets
+          .filter((b) => b.actual !== null)
+          .map((b) => ({
+            playerId: b.playerId,
+            announced: b.announced,
+            actual: b.actual!,
+            bonusX2: b.bonusX2,
+          }))
+
+    for (const scored of computeRoundScores(bets)) {
+      const total = (running.get(scored.playerId) ?? 0) + scored.points
+      running.set(scored.playerId, total)
+      rebuilt.push({
+        roundId: r.id,
+        playerId: scored.playerId,
+        points: scored.points,
+        totalPoints: total,
+      })
+    }
+  }
+
+  await prisma.$transaction([
+    // Les paris de la manche corrigée
+    ...entries.map((e) =>
+      prisma.bet.update({
+        where: { roundId_playerId: { roundId, playerId: e.playerId } },
+        data: { announced: e.announced, actual: e.actual, bonusX2: e.bonusX2 === true },
+      }),
+    ),
+    // Puis la chaîne des scores, effacée et réécrite d'un bloc
+    prisma.roundScore.deleteMany({ where: { roundId: { in: doneRounds.map((r) => r.id) } } }),
+    prisma.roundScore.createMany({ data: rebuilt }),
+  ])
+}
+
+/**
  * Switches between the ascending and descending halves, both ways.
  *
  * Allowed while the current round is still taking bets: the admin is then

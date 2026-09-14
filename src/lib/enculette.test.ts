@@ -111,6 +111,78 @@ describe('nextCardCount', () => {
   })
 })
 
+/**
+ * Reproduit le recalcul de `amendRound` : les totaux sont chaînés, donc
+ * corriger une manche doit décaler toutes les suivantes sans toucher à leurs
+ * propres points.
+ */
+function rebuildChain(
+  rounds: { playerId: string; announced: number; actual: number; bonusX2?: boolean }[][],
+  initial: Record<string, number>,
+) {
+  const running = new Map(Object.entries(initial))
+  return rounds.map((bets) =>
+    computeRoundScores(bets).map((s) => {
+      const total = (running.get(s.playerId) ?? 0) + s.points
+      running.set(s.playerId, total)
+      return { playerId: s.playerId, points: s.points, totalPoints: total }
+    }),
+  )
+}
+
+describe('chaîne des totaux après correction', () => {
+  const initial = { a: 0, b: 0 }
+
+  it('enchaîne les totaux de manche en manche', () => {
+    const chain = rebuildChain([
+      [{ playerId: 'a', announced: 1, actual: 1 }, { playerId: 'b', announced: 0, actual: 0 }],
+      [{ playerId: 'a', announced: 2, actual: 2 }, { playerId: 'b', announced: 1, actual: 0 }],
+    ], initial)
+
+    expect(chain[0]!.map((s) => s.totalPoints)).toEqual([20, 10])
+    expect(chain[1]!.map((s) => s.totalPoints)).toEqual([50, 0]) // 20+30, 10-10
+  })
+
+  it('décale les manches suivantes quand la première est corrigée', () => {
+    // M1 corrigée : a rate désormais son contrat (1 annoncé, 0 pris).
+    const chain = rebuildChain([
+      [{ playerId: 'a', announced: 1, actual: 0 }, { playerId: 'b', announced: 0, actual: 1 }],
+      [{ playerId: 'a', announced: 2, actual: 2 }, { playerId: 'b', announced: 1, actual: 0 }],
+    ], initial)
+
+    expect(chain[0]!.map((s) => s.totalPoints)).toEqual([-10, -10])
+    // Les points de M2 sont inchangés, seuls les totaux ont glissé.
+    expect(chain[1]!.map((s) => s.points)).toEqual([30, -10])
+    expect(chain[1]!.map((s) => s.totalPoints)).toEqual([20, -20])
+  })
+
+  it('repart des scores de départ des joueurs', () => {
+    const chain = rebuildChain([
+      [{ playerId: 'a', announced: 0, actual: 0 }, { playerId: 'b', announced: 0, actual: 0 }],
+    ], { a: 100, b: -50 })
+
+    expect(chain[0]!.map((s) => s.totalPoints)).toEqual([110, -40])
+  })
+
+  it('prend en compte le bonus ×2 dans la chaîne', () => {
+    const chain = rebuildChain([
+      [{ playerId: 'a', announced: 1, actual: 1, bonusX2: true }, { playerId: 'b', announced: 0, actual: 0 }],
+      [{ playerId: 'a', announced: 0, actual: 0 }, { playerId: 'b', announced: 0, actual: 0 }],
+    ], initial)
+
+    expect(chain[0]!.map((s) => s.totalPoints)).toEqual([40, 10]) // 20 doublé
+    expect(chain[1]!.map((s) => s.totalPoints)).toEqual([50, 20])
+  })
+
+  it('donne le même résultat rejoué deux fois', () => {
+    const rounds = [
+      [{ playerId: 'a', announced: 1, actual: 1 }, { playerId: 'b', announced: 0, actual: 0 }],
+      [{ playerId: 'a', announced: 2, actual: 0 }, { playerId: 'b', announced: 1, actual: 2 }],
+    ]
+    expect(rebuildChain(rounds, initial)).toEqual(rebuildChain(rounds, initial))
+  })
+})
+
 describe('maxCardCount', () => {
   it('splits one deck between the players', () => {
     expect(maxCardCount({ deckCount: 1, playerCount: 4 })).toBe(13) // 52 / 4

@@ -1,6 +1,9 @@
 'use client'
 
+import { useState } from 'react'
+import type { RoundState } from '@/types/game'
 import { useGameContext } from '@/context/GameContext'
+import { AmendRoundDialog } from './AmendRoundDialog'
 import { Scoreboard } from './Scoreboard'
 import { BettingPhase } from './BettingPhase'
 import { PlayingPhase } from './PlayingPhase'
@@ -10,6 +13,7 @@ import { ScoreChart } from './ScoreChart'
 
 export function GameBoard() {
   const { game, error, loading, refresh } = useGameContext()
+  const [amending, setAmending] = useState<RoundState | null>(null)
 
   if (loading) {
     return (
@@ -107,7 +111,14 @@ export function GameBoard() {
         <div className={`space-y-4 ${activePhase ? '' : 'md:col-span-2'}`}>
           <Scoreboard game={game} />
           <ScoreChart game={game} />
-          <RoundHistory game={game} />
+          <RoundHistory game={game} onAmend={isAdmin ? setAmending : undefined} />
+
+        <AmendRoundDialog
+          game={game}
+          round={amending}
+          onClose={() => setAmending(null)}
+          onDone={refresh}
+        />
         </div>
       </div>
     </main>

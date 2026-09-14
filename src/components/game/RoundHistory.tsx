@@ -1,12 +1,16 @@
-import type { GameState } from '@/types/game'
+import type { GameState, RoundState } from '@/types/game'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { BonusX2Badge } from './BonusX2Badge'
+import { Tooltip } from '@/components/ui/tooltip'
+import { Pencil } from 'lucide-react'
 
 interface Props {
   game: GameState
+  /** Fourni côté admin seulement : ouvre la correction d'une manche. */
+  onAmend?: (round: RoundState) => void
 }
 
-export function RoundHistory({ game }: Props) {
+export function RoundHistory({ game, onAmend }: Props) {
   const doneRounds = game.rounds.filter((r) => r.status === 'DONE')
   if (doneRounds.length === 0) return null
 
@@ -39,7 +43,20 @@ export function RoundHistory({ game }: Props) {
                     key={round.id}
                     className="px-3 py-2 font-medium text-muted-foreground text-center min-w-28 border-l"
                   >
-                    <div>M{round.number}</div>
+                    <div className="flex items-center justify-center gap-1">
+                      M{round.number}
+                      {onAmend && (
+                        <Tooltip side="bottom" label={`Corriger la manche ${round.number}`}>
+                          <button
+                            onClick={() => onAmend(round)}
+                            className="p-0.5 rounded text-muted-foreground/60 hover:text-foreground transition-colors"
+                            aria-label={`Corriger la manche ${round.number}`}
+                          >
+                            <Pencil size={11} />
+                          </button>
+                        </Tooltip>
+                      )}
+                    </div>
                     <div className="text-[10px] font-normal">{round.cardCount} carte{round.cardCount > 1 ? 's' : ''}</div>
                   </th>
                 ))}
