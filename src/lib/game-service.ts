@@ -673,29 +673,52 @@ export async function getSeason(id: string) {
   return prisma.season.findUnique({ where: { id } })
 }
 
+export type SeasonBanner =
+  | { kind: 'current'; id: string; name: string; endsAt: Date; days: number }
+  | { kind: 'upcoming'; id: string; name: string; startsAt: Date; days: number }
+
 /**
- * La saison qui contient la date du jour, s'il y en a une.
+ * De quoi annoncer l'état des saisons : celle en cours, ou à défaut la
+ * prochaine. `null` quand aucune saison n'est définie, ou que toutes sont
+ * passées — il n'y a alors rien à annoncer.
  *
- * Le nombre de jours restants est calculé ici et non à l'affichage : lire
- * l'heure pendant le rendu d'un composant est une impureté que React proscrit.
+ * Le décompte de jours est calculé ici et non à l'affichage : lire l'heure
+ * pendant le rendu d'un composant est une impureté que React proscrit.
  */
-export async function getCurrentSeason(): Promise<
-  { id: string; name: string; startsAt: Date; endsAt: Date; daysLeft: number } | null
-> {
+export async function getSeasonBanner(): Promise<SeasonBanner | null> {
   const now = new Date()
-  const season = await prisma.season.findFirst({
+  const days = (target: Date) =>
+    Math.max(0, Math.ceil((target.getTime() - now.getTime()) / 86_400_000))
+
+  const current = await prisma.season.findFirst({
     where: { startsAt: { lte: now }, endsAt: { gt: now } },
     orderBy: { startsAt: 'desc' },
   })
-  if (!season) return null
-
-  return {
-    id: season.id,
-    name: season.name,
-    startsAt: season.startsAt,
-    endsAt: season.endsAt,
-    daysLeft: Math.max(0, Math.ceil((season.endsAt.getTime() - now.getTime()) / 86_400_000)),
+  if (current) {
+    return {
+      kind: 'current',
+      id: current.id,
+      name: current.name,
+      endsAt: current.endsAt,
+      days: days(current.endsAt),
+    }
   }
+
+  const next = await prisma.season.findFirst({
+    where: { startsAt: { gt: now } },
+    orderBy: { startsAt: 'asc' },
+  })
+  if (next) {
+    return {
+      kind: 'upcoming',
+      id: next.id,
+      name: next.name,
+      startsAt: next.startsAt,
+      days: days(next.startsAt),
+    }
+  }
+
+  return null
 }
 
 async function assertNoOverlap(range: { startsAt: Date; endsAt: Date }, ignoreId?: string) {

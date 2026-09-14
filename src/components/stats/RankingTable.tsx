@@ -15,6 +15,43 @@ interface Props {
   scoringConfig: ScoringConfig
 }
 
+const PODIUM_STYLES = [
+  'border-yellow-400/50 bg-yellow-50/60 dark:border-yellow-700/40 dark:bg-yellow-950/20',
+  'border-border bg-muted/40',
+  'border-amber-700/30 bg-amber-50/50 dark:border-amber-800/30 dark:bg-amber-950/15',
+] as const
+
+/**
+ * Les trois premiers, mis en avant au-dessus du tableau. Les ex æquo partageant
+ * un rang, le bloc peut compter plus de trois joueurs — il est borné à cinq
+ * pour ne pas déborder.
+ */
+function Podium({
+  entries,
+}: {
+  entries: { name: string; rank: number; value: string; sub: string }[]
+}) {
+  if (entries.length === 0) return null
+
+  return (
+    <div className="grid gap-2 sm:grid-cols-3">
+      {entries.map((entry) => (
+        <div
+          key={entry.name}
+          className={`flex items-center gap-3 rounded-xl border p-3 ${PODIUM_STYLES[entry.rank - 1] ?? 'border-border bg-muted/30'}`}
+        >
+          <span className="text-2xl leading-none shrink-0">{medal(entry.rank) ?? entry.rank}</span>
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold truncate">{entry.name}</p>
+            <p className="text-xs text-muted-foreground truncate">{entry.sub}</p>
+          </div>
+          <span className="font-mono font-bold text-sm shrink-0">{entry.value}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export function RankingTable({ stats, scoringConfig }: Props) {
   const [mode, setMode] = useState<RankMode>('auto')
   const [dir, setDir] = useState<SortDir>('desc')
@@ -69,8 +106,25 @@ export function RankingTable({ stats, scoringConfig }: Props) {
 
   const thProps = { currentKey: mode, currentDir: dir, onSort: handleSort }
 
+  // Un podium n'a de sens que sur le classement lui-même : trié par colonne,
+  // « premier » ne désigne plus le meilleur joueur mais la plus grande valeur.
+  const podium = isAuto
+    ? sorted
+        .map((s, i) => ({ stat: s, rank: ranks[i]! }))
+        .filter((e) => e.rank <= 3)
+        .slice(0, 5)
+        .map((e) => ({
+          name: e.stat.name,
+          rank: e.rank,
+          value: showExtra ? extraValue(e.stat) : `${e.stat.wins} V`,
+          sub: `${e.stat.wins} victoire${e.stat.wins !== 1 ? 's' : ''} · ${e.stat.gamesPlayed} partie${e.stat.gamesPlayed !== 1 ? 's' : ''}`,
+        }))
+    : []
+
   return (
     <div className="space-y-3">
+      <Podium entries={podium} />
+
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <span className="flex items-center gap-1 text-xs text-muted-foreground">
           <Settings2 size={11} />

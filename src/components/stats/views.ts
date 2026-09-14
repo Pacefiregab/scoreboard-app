@@ -11,9 +11,16 @@ export interface StatsView {
 /**
  * Source unique des vues de la section statistiques : le menu et l'en-tête de
  * chaque page s'y réfèrent, pour qu'un libellé ne puisse pas diverger entre les
- * deux. L'ordre est celui du menu, et la première entrée est la vue par défaut.
+ * deux. L'ordre est celui du menu ; la vue par défaut reste `/stats`, que cet
+ * ordre ne détermine pas.
  */
 export const STATS_VIEWS: StatsView[] = [
+  {
+    href: '/stats/palmares',
+    label: 'Palmarès des saisons',
+    description: 'Le champion de chaque saison, et le podium qui l’accompagne.',
+    icon: Medal,
+  },
   {
     href: '/stats',
     label: 'Récap de la semaine',
@@ -37,12 +44,6 @@ export const STATS_VIEWS: StatsView[] = [
     label: 'Historique des parties',
     description: 'Chaque partie terminée mène à son résumé complet.',
     icon: History,
-  },
-  {
-    href: '/stats/palmares',
-    label: 'Palmarès des saisons',
-    description: 'Le champion de chaque saison, et le podium qui l’accompagne.',
-    icon: Medal,
   },
 ]
 

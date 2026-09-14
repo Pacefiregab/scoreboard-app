@@ -2,9 +2,9 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { JoinForm } from '@/components/JoinForm'
 import { AppHeader } from '@/components/AppHeader'
-import { listActiveGames, listFinishedGames, getCurrentSeason } from '@/lib/game-service'
+import { listActiveGames, listFinishedGames, getSeasonBanner } from '@/lib/game-service'
 import { inclusiveEnd } from '@/lib/season'
-import { Users, BarChart2, History, CalendarRange } from 'lucide-react'
+import { Users, BarChart2, History, CalendarRange, CalendarClock } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,13 +12,15 @@ export default async function HomePage() {
   const [activeGames, finishedGames, season] = await Promise.all([
     listActiveGames(),
     listFinishedGames(),
-    getCurrentSeason(),
+    getSeasonBanner(),
   ])
   const lastGame = finishedGames[0]
 
-  const seasonEnd = season
-    ? new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long' })
-        .format(inclusiveEnd(season.endsAt))
+  const fmtDay = (d: Date) =>
+    new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long' }).format(d)
+
+  const seasonDate = season
+    ? fmtDay(season.kind === 'current' ? inclusiveEnd(season.endsAt) : season.startsAt)
     : ''
 
   return (
@@ -34,12 +36,25 @@ export default async function HomePage() {
         {season && (
           <Link
             href={`/stats?saison=${season.id}`}
-            className="inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-xs hover:bg-primary/15 transition-colors"
+            className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs transition-colors ${
+              season.kind === 'current'
+                ? 'border-primary/40 bg-primary/10 hover:bg-primary/15'
+                : 'border-border hover:bg-muted'
+            }`}
           >
-            <CalendarRange size={13} className="text-primary shrink-0" />
-            <span className="font-medium">{season.name}</span>
+            {season.kind === 'current'
+              ? <CalendarRange size={13} className="text-primary shrink-0" />
+              : <CalendarClock size={13} className="text-muted-foreground shrink-0" />}
+            <span className="font-medium">
+              {season.kind === 'upcoming' && 'Prochaine saison : '}
+              {season.name}
+            </span>
             <span className="text-muted-foreground">
-              jusqu’au {seasonEnd} · {season.daysLeft} jour{season.daysLeft !== 1 ? 's' : ''}
+              {season.kind === 'current'
+                ? `jusqu’au ${seasonDate}`
+                : `à partir du ${seasonDate}`}
+              {' · '}
+              {season.days} jour{season.days !== 1 ? 's' : ''}
             </span>
           </Link>
         )}
