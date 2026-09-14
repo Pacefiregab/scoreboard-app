@@ -14,6 +14,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: '2026-09-17',
+    items: [
+      'La vue Récap couvre désormais la semaine, une saison, ou toutes les saisons d’un coup — au choix, via le sélecteur de période.',
+      'Correction : le récap d’une saison annonçait « joueur de la semaine », et le champion était affiché en victoires alors que le classement se fait sur une autre base.',
+    ],
+  },
+  {
     date: '2026-09-16',
     items: [
       'Chacun peut désormais classer les joueurs selon la méthode de son choix, depuis les statistiques. Celle de l’hôte reste la méthode par défaut.',

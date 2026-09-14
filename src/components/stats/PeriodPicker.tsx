@@ -2,9 +2,7 @@
 
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import type { SeasonOption } from './SeasonPicker'
-
-/** Valeur du sélecteur quand le récap porte sur la semaine en cours. */
-export const WEEK_PERIOD = 'semaine'
+import { WEEK_PERIOD, ALL_SEASONS_PERIOD } from './periods'
 
 /**
  * Période couverte par le récap : la semaine en cours, ou une saison.
@@ -42,6 +40,9 @@ export function PeriodPicker({
         className="h-7 max-w-44 rounded-md border border-input bg-transparent px-1.5 text-xs outline-none focus-visible:border-ring"
       >
         <option value={WEEK_PERIOD}>Cette semaine</option>
+        {seasons.length > 0 && (
+          <option value={ALL_SEASONS_PERIOD}>Toutes les saisons</option>
+        )}
         {seasons.map((s) => (
           <option key={s.id} value={s.id}>
             {s.name}{s.status === 'current' ? ' (en cours)' : ''}

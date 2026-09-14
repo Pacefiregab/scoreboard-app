@@ -1,10 +1,13 @@
-import { getPlayerStats, listFinishedGames } from '@/lib/game-service'
+import { getPlayerStats, listFinishedGames, listSeasons } from '@/lib/game-service'
 import { resolveSeasonFilter } from '@/lib/season-filter'
 import { resolveScoring } from '@/lib/scoring-choice'
 import { inclusiveEnd } from '@/lib/season'
+import { rankByConfig, computeComposites } from '@/lib/scoring'
+import { competitionRanks } from '@/lib/ranking'
 import { WeeklyRecap } from '@/components/WeeklyRecap'
+import { SeasonsOverview, type SeasonOverviewRow } from '@/components/stats/SeasonsOverview'
 import { StatsPageHeader } from '@/components/stats/StatsPageHeader'
-import { WEEK_PERIOD } from '@/components/stats/PeriodPicker'
+import { WEEK_PERIOD, ALL_SEASONS_PERIOD } from '@/components/stats/periods'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,13 +29,82 @@ export default async function RecapPage({
   searchParams: Promise<Record<string, string>>
 }) {
   const sp = await searchParams
-  const [season, scoring] = await Promise.all([
-    resolveSeasonFilter(sp.saison),
-    resolveScoring(sp.methode),
-  ])
+  const scoring = await resolveScoring(sp.methode)
+  const config = scoring.config
 
-  // Sans saison choisie, le récap porte sur la semaine en cours ; avec une
-  // saison, il couvre toute sa durée — même forme, autre fenêtre.
+  const methodPicker = scoring.allowChoice
+    ? { selected: config.method, admin: scoring.adminMethod }
+    : undefined
+
+  // ── Vue transversale : une ligne par saison, avec son champion ──
+  if (sp.saison === ALL_SEASONS_PERIOD) {
+    const seasons = await listSeasons()
+
+    const rows: SeasonOverviewRow[] = await Promise.all(
+      seasons.map(async (season) => {
+        const stats = await getPlayerStats({
+          finishedSince: season.startsAt,
+          finishedBefore: season.endsAt,
+        })
+
+        let champions: string[] = []
+        let championValue = ''
+
+        if (stats.length > 0) {
+          const ranked = rankByConfig(stats, config)
+          const composites = computeComposites(stats, config)
+          const ranks = competitionRanks(ranked, (s) => {
+            if (config.method === 'C') return `${s.wins}|${s.avgFinalScore}|${s.contractRate}`
+            if (config.method === 'B') return `${s.f1Points}|${s.wins}`
+            return String(composites.get(s.name) ?? 0)
+          })
+          const top = ranked.filter((_, i) => ranks[i] === 1)
+          champions = top.map((s) => s.name)
+          // La valeur affichée est celle qui a servi à classer, sinon un
+          // deuxième à zéro victoire donne un podium incompréhensible.
+          const first = top[0]!
+          championValue =
+            config.method === 'B' ? `${first.f1Points} pts F1`
+            : config.method === 'A' ? `${composites.get(first.name) ?? 0} / 100`
+            : `${first.wins} victoire${first.wins !== 1 ? 's' : ''}`
+        }
+
+        return {
+          id: season.id,
+          name: season.name,
+          startsAt: season.startsAt.toISOString(),
+          endsAt: inclusiveEnd(season.endsAt).toISOString(),
+          status: season.status,
+          gameCount: season.gameCount,
+          playerCount: stats.length,
+          champions,
+          championValue,
+        }
+      }),
+    )
+
+    return (
+      <div className="space-y-5">
+        <StatsPageHeader
+          href="/stats"
+          title="Toutes les saisons"
+          description="Le champion de chaque saison. Sélectionnez une saison pour son récap détaillé."
+          meta={`${seasons.length} saison${seasons.length !== 1 ? 's' : ''} définie${seasons.length !== 1 ? 's' : ''}`}
+          seasons={rows.map((r) => ({
+            id: r.id, name: r.name, status: r.status, gameCount: r.gameCount,
+          }))}
+          selectedSeason={ALL_SEASONS_PERIOD}
+          periodMode
+          method={methodPicker}
+        />
+        <SeasonsOverview seasons={rows} />
+      </div>
+    )
+  }
+
+  // ── Récap d'une période : la semaine en cours, ou une saison ──
+  const season = await resolveSeasonFilter(sp.saison)
+
   const weekStart = startOfWeek()
   const window = season.window ?? { finishedSince: weekStart }
 
@@ -62,16 +134,13 @@ export default async function RecapPage({
         seasons={season.seasons}
         selectedSeason={season.selected === 'all' ? WEEK_PERIOD : season.selected}
         periodMode
-        method={
-          scoring.allowChoice
-            ? { selected: scoring.config.method, admin: scoring.adminMethod }
-            : undefined
-        }
+        method={methodPicker}
       />
       <WeeklyRecap
         stats={stats}
         gamesCount={games.length}
-        scoringConfig={scoring.config}
+        scoringConfig={config}
+        periodLabel={season.name ? 'de la saison' : 'de la semaine'}
         emptyLabel={season.name ? `Aucune partie terminée pour ${season.name}.` : undefined}
       />
     </div>

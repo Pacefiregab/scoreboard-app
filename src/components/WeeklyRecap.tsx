@@ -9,6 +9,8 @@ interface Props {
   scoringConfig: ScoringConfig
   /** Message d'absence, adapté à la période couverte. */
   emptyLabel?: string
+  /** « de la semaine » ou « de la saison » : la période n'est pas toujours la semaine. */
+  periodLabel?: string
 }
 
 function pct(n: number) {
@@ -42,7 +44,13 @@ function HighlightCard({ icon, label, value, detail }: {
 }
 
 /** The page header already names the view, so this renders the content only. */
-export function WeeklyRecap({ stats, gamesCount, scoringConfig, emptyLabel }: Props) {
+export function WeeklyRecap({
+  stats,
+  gamesCount,
+  scoringConfig,
+  emptyLabel,
+  periodLabel = 'de la semaine',
+}: Props) {
   if (gamesCount === 0 || stats.length === 0) {
     return (
       <div className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
@@ -87,7 +95,7 @@ export function WeeklyRecap({ stats, gamesCount, scoringConfig, emptyLabel }: Pr
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <HighlightCard
             icon={<Crown size={12} />}
-            label={leaders.length > 1 ? 'Joueurs de la semaine' : 'Joueur de la semaine'}
+            label={`${leaders.length > 1 ? 'Joueurs' : 'Joueur'} ${periodLabel}`}
             value={names(leaders)}
             detail={leaders.length > 1 ? `${topDetail} — ex æquo` : topDetail}
           />

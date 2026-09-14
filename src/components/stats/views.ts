@@ -1,4 +1,4 @@
-import { Trophy, TrendingUp, CalendarDays, History, Medal, type LucideIcon } from 'lucide-react'
+import { Trophy, TrendingUp, CalendarDays, History, type LucideIcon } from 'lucide-react'
 
 export interface StatsView {
   href: string
@@ -16,18 +16,12 @@ export interface StatsView {
  */
 export const STATS_VIEWS: StatsView[] = [
   {
-    href: '/stats/palmares',
-    label: 'Palmarès des saisons',
-    description: 'Le champion de chaque saison, et le podium qui l’accompagne.',
-    icon: Medal,
-  },
-  {
-    // Le libellé reste neutre : la vue couvre la semaine ou une saison, selon
-    // la période choisie. Annoncer « la semaine » ici mentait dès qu'une
-    // saison était sélectionnée.
+    // Le libellé reste neutre : la vue couvre la semaine, une saison, ou
+    // toutes les saisons, selon la période choisie. Annoncer « la semaine »
+    // ici mentait dès qu'une saison était sélectionnée.
     href: '/stats',
     label: 'Récap',
-    description: 'Champion, podium et records — sur la semaine en cours ou sur une saison.',
+    description: 'Champion, podium et records — par semaine, par saison, ou toutes saisons.',
     icon: CalendarDays,
   },
   {
